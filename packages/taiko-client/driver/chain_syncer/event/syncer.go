@@ -10,7 +10,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
-
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/metadata"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/chain_syncer/beaconsync"
 	blocksInserter "github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/chain_syncer/event/blocks_inserter"
@@ -18,6 +17,7 @@ import (
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/internal/metrics"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/pkg/rpc"
 
+	minimalBindings "github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/minimal"
 	anchorTxConstructor "github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/anchor_tx_constructor"
 	txListDecompressor "github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/txlist_decompressor"
 	txlistFetcher "github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/txlist_fetcher"
@@ -91,7 +91,7 @@ func NewSyncer(
 	}, nil
 }
 
-// ProcessL1Blocks fetches all `TaikoInbox.BatchProposed` events between given
+// ProcessL1Blocks fetches all `PublicationFeed.Published` events between given
 // L1 block heights, and then tries inserting them into L2 execution engine's blockchain.
 func (s *Syncer) ProcessL1Blocks(ctx context.Context) error {
 	for {
@@ -137,13 +137,13 @@ func (s *Syncer) processL1Blocks(ctx context.Context) error {
 		s.lastInsertedBlockID = nil
 	}
 
-	iter, err := eventIterator.NewBatchProposedIterator(ctx, &eventIterator.BatchProposedIteratorConfig{
-		Client:               s.rpc.L1,
-		TaikoInbox:           s.rpc.PacayaClients.TaikoInbox,
-		PacayaForkHeight:     s.rpc.PacayaClients.ForkHeights.Pacaya,
-		StartHeight:          s.state.GetL1Current().Number,
-		EndHeight:            l1End.Number,
-		OnBatchProposedEvent: s.onBatchProposed,
+	iter, err := eventIterator.NewPublishedIterator(ctx, &eventIterator.PublishedIteratorConfig{
+		Client:           s.rpc.L1,
+		PublicationFeed:  s.rpc.MinimalRollupClients.PublicationFeed,
+		//PacayaForkHeight:     s.rpc.PacayaClients.ForkHeights.Pacaya,
+		StartHeight:      s.state.GetL1Current().Number,
+		EndHeight:        l1End.Number,
+		OnPublishedEvent: s.onPublished,
 	})
 	if err != nil {
 		return err
@@ -244,6 +244,94 @@ func (s *Syncer) onBatchProposed(
 
 	metrics.DriverL1CurrentHeightGauge.Set(float64(meta.GetRawBlockHeight().Uint64()))
 	s.lastInsertedBlockID = lastBlockID
+
+	if s.progressTracker.Triggered() {
+		s.progressTracker.ClearMeta()
+	}
+
+	return nil
+}
+
+// onPublished is a `Published` event callback which responsible for
+func (s *Syncer) onPublished(
+	ctx context.Context,
+	event *minimalBindings.IPublicationFeedPublished,
+	endIter eventIterator.EndPublishedEventIterFunc,
+) error {
+	// Extract block information from the published event
+	blockID := event.Header.Id
+	timestamp := event.Header.Timestamp.Uint64()
+
+	// We simply ignore the genesis block's event
+	if blockID.Cmp(common.Big0) == 0 {
+		return nil
+	}
+
+	// If we are not inserting a block whose parent block is the latest verified block in protocol,
+	// and the node hasn't just finished the P2P sync, we check if the L1 chain has been reorged.
+	if !s.progressTracker.Triggered() {
+		reorgCheckResult, err := s.checkReorg(ctx, blockID)
+		if err != nil {
+			return err
+		}
+
+		if reorgCheckResult.IsReorged {
+			log.Info(
+				"Reset L1Current cursor due to L1 reorg",
+				"l1CurrentHeightOld", s.state.GetL1Current().Number,
+				"l1CurrentHashOld", s.state.GetL1Current().Hash(),
+				"l1CurrentHeightNew", reorgCheckResult.L1CurrentToReset.Number,
+				"l1CurrentHashNew", reorgCheckResult.L1CurrentToReset.Hash(),
+				"lastInsertedBlockIDOld", s.lastInsertedBlockID,
+				"lastInsertedBlockIDNew", reorgCheckResult.LastHandledBlockIDToReset,
+			)
+			s.state.SetL1Current(reorgCheckResult.L1CurrentToReset)
+			s.lastInsertedBlockID = reorgCheckResult.LastHandledBlockIDToReset
+			s.reorgDetectedFlag = true
+			endIter()
+
+			return nil
+		}
+	}
+
+	// Ignore those already inserted blocks.
+	if s.lastInsertedBlockID != nil && blockID.Cmp(s.lastInsertedBlockID) <= 0 {
+		log.Debug(
+			"Skip already inserted block",
+			"blockID", blockID,
+			"lastInsertedBlockID", s.lastInsertedBlockID,
+		)
+		return nil
+	}
+
+	// If the event's timestamp is in the future, we wait until the timestamp is reached, should
+	// only happen when testing.
+	if timestamp > uint64(time.Now().Unix()) {
+		log.Warn(
+			"Future L2 block, waiting",
+			"L2BlockTimestamp", timestamp,
+			"now", time.Now().Unix(),
+		)
+		time.Sleep(time.Until(time.Unix(int64(timestamp), 0)))
+	}
+
+	// Insert new blocks to L2 EE's chain.
+	log.Info(
+		"New Publication event",
+		"l1Height", event.Raw.BlockNumber,
+		"l1Hash", event.Raw.BlockHash,
+		"pubId", event.Header.Id,
+		"timestamp", timestamp,
+		"attributes", len(event.Attributes),
+	)
+	
+	//TODO(gustavo): Fix by passing the metadata or creating a new function
+	// if err := s.blocksInserterPacaya.InsertBlocks(ctx, meta, endIter); err != nil {
+	// 	return err
+	// }
+
+	metrics.DriverL1CurrentHeightGauge.Set(float64(event.Raw.BlockNumber))
+	s.lastInsertedBlockID = blockID
 
 	if s.progressTracker.Triggered() {
 		s.progressTracker.ClearMeta()

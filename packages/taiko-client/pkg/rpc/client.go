@@ -151,10 +151,10 @@ func NewClient(ctx context.Context, cfg *ClientConfig) (*Client, error) {
 		L2Engine:     l2AuthClient,
 	}
 
-	// Initialize all smart contract clients.
-	if err := c.initPacayaClients(cfg); err != nil {
-		return nil, fmt.Errorf("failed to initialize Pacaya clients: %w", err)
-	}
+	// // Initialize all smart contract clients.
+	// if err := c.initPacayaClients(cfg); err != nil {
+	// 	return nil, fmt.Errorf("failed to initialize Pacaya clients: %w", err)
+	// }
 
 	// Initialize minimal rollup clients
 	if err := c.initMinimalRollupClients(cfg); err != nil {
