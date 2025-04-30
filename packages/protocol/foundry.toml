@@ -8,7 +8,7 @@ fuzz_runs = 200
 fuzz_runs_show_logs = false
 ffi = true
 memory_limit = 2_073_741_824
-solc_version = "0.8.27"
+solc_version = "0.8.28"
 remappings = [
   "openzeppelin/=node_modules/@openzeppelin/",
   "@openzeppelin=node_modules/@openzeppelin",
@@ -80,3 +80,10 @@ test = "test/genesis"
 script = "script/layer2"
 out = "out/genesis"
 evm_version = "shanghai"
+
+[profile.minimal-rollup]
+src = "contracts/minimal-rollup"
+test = "test/minimal-rollup"
+script = "script/minimal-rollup"
+out = "out/minimal-rollup"
+evm_version = "cancun"

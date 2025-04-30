@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 
+	minimalBindings "github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/minimal"
 	pacayaBindings "github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/pacaya"
 )
 
@@ -32,6 +33,18 @@ type PacayaClients struct {
 	ForkHeights          *pacayaBindings.ITaikoInboxForkHeights
 }
 
+// MinimalRollupClients contains all smart contract clients for minimal-rollup interfaces.
+type MinimalRollupClients struct {
+	PublicationFeed *minimalBindings.IPublicationFeed
+	ProverManager   *minimalBindings.IProverManager
+	ProposerFees    *minimalBindings.IProposerFees
+	Verifier        *minimalBindings.IVerifier
+	Lookahead           *minimalBindings.ILookahead
+	Inbox               *minimalBindings.IInbox
+	CheckpointTracker   *minimalBindings.ICheckpointTracker
+	DelayedInclusionStore    *minimalBindings.IDelayedInclusionStore
+}
+
 // Client contains all L1/L2 RPC clients that a driver needs.
 type Client struct {
 	// Geth ethclient clients
@@ -43,7 +56,8 @@ type Client struct {
 	// Beacon clients
 	L1Beacon *BeaconClient
 	// Protocol contracts clients
-	PacayaClients *PacayaClients
+	PacayaClients        *PacayaClients
+	MinimalRollupClients *MinimalRollupClients
 }
 
 // ClientConfig contains all configs which will be used to initializing an
@@ -61,9 +75,16 @@ type ClientConfig struct {
 	ForcedInclusionStoreAddress common.Address
 	PreconfWhitelistAddress     common.Address
 	ProverSetAddress            common.Address
-	L2EngineEndpoint            string
-	JwtSecret                   string
-	Timeout                     time.Duration
+	// Minimal Rollup Addresses
+	PublicationFeedAddress common.Address
+	ProverManagerAddress   common.Address
+	ProposerFeesAddress    common.Address
+	VerifierAddress        common.Address
+	LookaheadAddress       common.Address
+	InboxAddress           common.Address
+	L2EngineEndpoint       string
+	JwtSecret              string
+	Timeout                time.Duration
 }
 
 // NewClient initializes all RPC clients used by Taiko client software.
@@ -133,6 +154,11 @@ func NewClient(ctx context.Context, cfg *ClientConfig) (*Client, error) {
 	// Initialize all smart contract clients.
 	if err := c.initPacayaClients(cfg); err != nil {
 		return nil, fmt.Errorf("failed to initialize Pacaya clients: %w", err)
+	}
+
+	// Initialize minimal rollup clients
+	if err := c.initMinimalRollupClients(cfg); err != nil {
+		return nil, fmt.Errorf("failed to initialize Minimal Rollup clients: %w", err)
 	}
 
 	ctxWithTimeout, cancel := CtxWithTimeoutOrDefault(ctx, defaultTimeout)
@@ -231,6 +257,51 @@ func (c *Client) initPacayaClients(cfg *ClientConfig) error {
 		PreconfWhitelist:     preconfWhitelist,
 	}
 
+	return nil
+}
+
+// initMinimalRollupClients initializes all minimal-rollup smart contract clients.
+func (c *Client) initMinimalRollupClients(cfg *ClientConfig) error {
+	minimalClients := &MinimalRollupClients{}
+	var err error
+
+	if cfg.PublicationFeedAddress.Hex() != ZeroAddress.Hex() {
+		if minimalClients.PublicationFeed, err = minimalBindings.NewIPublicationFeed(cfg.PublicationFeedAddress, c.L1); err != nil {
+			return fmt.Errorf("failed to initialize PublicationFeed client: %w", err)
+		}
+	}
+
+	if cfg.ProverManagerAddress.Hex() != ZeroAddress.Hex() {
+		if minimalClients.ProverManager, err = minimalBindings.NewIProverManager(cfg.ProverManagerAddress, c.L1); err != nil {
+			return fmt.Errorf("failed to initialize ProverManager client: %w", err)
+		}
+	}
+
+	if cfg.ProposerFeesAddress.Hex() != ZeroAddress.Hex() {
+		if minimalClients.ProposerFees, err = minimalBindings.NewIProposerFees(cfg.ProposerFeesAddress, c.L1); err != nil {
+			return fmt.Errorf("failed to initialize ProposerFees client: %w", err)
+		}
+	}
+
+	if cfg.VerifierAddress.Hex() != ZeroAddress.Hex() {
+		if minimalClients.Verifier, err = minimalBindings.NewIVerifier(cfg.VerifierAddress, c.L1); err != nil {
+			return fmt.Errorf("failed to initialize Verifier client: %w", err)
+		}
+	}
+
+	if cfg.LookaheadAddress.Hex() != ZeroAddress.Hex() {
+		if minimalClients.Lookahead, err = minimalBindings.NewILookahead(cfg.LookaheadAddress, c.L1); err != nil {
+			return fmt.Errorf("failed to initialize Lookahead client: %w", err)
+		}
+	}
+
+	if cfg.InboxAddress.Hex() != ZeroAddress.Hex() {
+		if minimalClients.Inbox, err = minimalBindings.NewIInbox(cfg.InboxAddress, c.L1); err != nil {
+			return fmt.Errorf("failed to initialize Inbox client: %w", err)
+		}
+	}
+
+	c.MinimalRollupClients = minimalClients
 	return nil
 }
 

@@ -36,10 +36,15 @@ gen_bindings:
 	@TAIKO_GETH_DIR=${TAIKO_GETH_DIR} \
 		./scripts/gen_bindings.sh
 
+gen_minimal_bindings:
+	@TAIKO_GETH_DIR=${TAIKO_GETH_DIR} \
+		./scripts/gen_minimal_bindings.sh
+
 .PHONY: build \
 				clean \
 				lint \
 				test \
 				hive_tests \
 				dev_net \
-				gen_bindings
+				gen_bindings \
+				gen_minimal_bindings
