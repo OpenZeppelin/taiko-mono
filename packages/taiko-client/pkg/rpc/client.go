@@ -36,7 +36,7 @@ type PacayaClients struct {
 // MinimalRollupClients contains all smart contract clients for minimal-rollup interfaces.
 type MinimalRollupClients struct {
 	PublicationFeed *minimalBindings.IPublicationFeed
-	ProverManager   *minimalBindings.IProverManager
+	// ProverManager   *minimalBindings.IProverManager
 	ProposerFees    *minimalBindings.IProposerFees
 	Verifier        *minimalBindings.IVerifier
 	Lookahead           *minimalBindings.ILookahead
@@ -151,10 +151,10 @@ func NewClient(ctx context.Context, cfg *ClientConfig) (*Client, error) {
 		L2Engine:     l2AuthClient,
 	}
 
-	// // Initialize all smart contract clients.
-	// if err := c.initPacayaClients(cfg); err != nil {
-	// 	return nil, fmt.Errorf("failed to initialize Pacaya clients: %w", err)
-	// }
+	// Initialize all smart contract clients.
+	if err := c.initPacayaClients(cfg); err != nil {
+		return nil, fmt.Errorf("failed to initialize Pacaya clients: %w", err)
+	}
 
 	// Initialize minimal rollup clients
 	if err := c.initMinimalRollupClients(cfg); err != nil {
@@ -169,9 +169,10 @@ func NewClient(ctx context.Context, cfg *ClientConfig) (*Client, error) {
 	}
 
 	// Ensure that the genesis block hash of L1 and L2 match.
-	if err := c.ensureGenesisMatched(ctxWithTimeout, cfg.TaikoInboxAddress); err != nil {
-		return nil, fmt.Errorf("failed to ensure genesis block matched: %w", err)
-	}
+	//TODO(gustavo): Check if we should add this back
+	// if err := c.ensureGenesisMatched(ctxWithTimeout, cfg.TaikoInboxAddress); err != nil {
+	// 	return nil, fmt.Errorf("failed to ensure genesis block matched: %w", err)
+	// }
 
 	return c, nil
 }
@@ -265,17 +266,15 @@ func (c *Client) initMinimalRollupClients(cfg *ClientConfig) error {
 	minimalClients := &MinimalRollupClients{}
 	var err error
 
-	if cfg.PublicationFeedAddress.Hex() != ZeroAddress.Hex() {
-		if minimalClients.PublicationFeed, err = minimalBindings.NewIPublicationFeed(cfg.PublicationFeedAddress, c.L1); err != nil {
-			return fmt.Errorf("failed to initialize PublicationFeed client: %w", err)
-		}
+	if minimalClients.PublicationFeed, err = minimalBindings.NewIPublicationFeed(cfg.PublicationFeedAddress, c.L1); err != nil {
+		return fmt.Errorf("failed to initialize PublicationFeed client: %w", err)
 	}
 
-	if cfg.ProverManagerAddress.Hex() != ZeroAddress.Hex() {
-		if minimalClients.ProverManager, err = minimalBindings.NewIProverManager(cfg.ProverManagerAddress, c.L1); err != nil {
-			return fmt.Errorf("failed to initialize ProverManager client: %w", err)
-		}
-	}
+	// if cfg.ProverManagerAddress.Hex() != ZeroAddress.Hex() {
+	// 	if minimalClients.ProverManager, err = minimalBindings.NewIProverManager(cfg.ProverManagerAddress, c.L1); err != nil {
+	// 		return fmt.Errorf("failed to initialize ProverManager client: %w", err)
+	// 	}
+	// }
 
 	if cfg.ProposerFeesAddress.Hex() != ZeroAddress.Hex() {
 		if minimalClients.ProposerFees, err = minimalBindings.NewIProposerFees(cfg.ProposerFeesAddress, c.L1); err != nil {

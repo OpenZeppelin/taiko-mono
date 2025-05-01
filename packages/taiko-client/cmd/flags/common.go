@@ -85,9 +85,16 @@ var (
 	TaikoTokenAddress = &cli.StringFlag{
 		Name:     "taikoToken",
 		Usage:    "TaikoToken contract `address`",
-		Required: true,
+		Required: false,
 		Category: commonCategory,
 		EnvVars:  []string{"TAIKO_TOKEN"},
+	}
+	PublicationFeedAddress = &cli.StringFlag{
+		Name:     "publicationFeed",
+		Usage:    "PublicationFeed contract `address`",
+		Required: true,
+		Category: commonCategory,
+		EnvVars:  []string{"PUBLICATION_FEED"},
 	}
 
 	// Optional flags used by all client software.

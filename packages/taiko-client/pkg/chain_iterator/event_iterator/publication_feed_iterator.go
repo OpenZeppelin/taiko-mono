@@ -119,7 +119,7 @@ func assemblePublishedIteratorCallback(
 
 		for iter.Next() {
 			event := iter.Event
-			log.Debug("Processing Published event", "pubId", event.Header.Id, "l1BlockHeight", event.Raw.BlockNumber)
+			log.Info("Processing Published event", "pubId", event.Header.Id, "l1BlockHeight", event.Raw.BlockNumber)
 
 			if lastPubID != 0 && event.Header.Id.Uint64() != lastPubID+1 {
 				log.Warn(
