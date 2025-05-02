@@ -117,7 +117,7 @@ func (s *Syncer) processL1Blocks(ctx context.Context) error {
 		l1End          = s.state.GetL1Head()
 		startL1Current = s.state.GetL1Current()
 	)
-	log.Info("Processing L1 blocks", "startL1Current", startL1Current, "l1End", l1End)
+	log.Info("Processing L1 blocks", "startL1Current", startL1Current.Number.Uint64(), "l1End", l1End.Number.Uint64())
 	// If there is a L1 reorg, sometimes this will happen.
 	if startL1Current.Number.Uint64() >= l1End.Number.Uint64() && startL1Current.Hash() != l1End.Hash() {
 		newL1Current, err := s.rpc.L1.HeaderByNumber(ctx, new(big.Int).Sub(l1End.Number, common.Big1))
