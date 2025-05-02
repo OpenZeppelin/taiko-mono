@@ -170,6 +170,7 @@ var CommonFlags = []cli.Flag{
 	L1WSEndpoint,
 	TaikoInboxAddress,
 	TaikoAnchorAddress,
+	PublicationFeedAddress,
 	// Optional
 	ProverSetAddress,
 	Verbosity,
