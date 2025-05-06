@@ -248,12 +248,13 @@ func (c *Client) GetGenesisL1Header(ctx context.Context) (*types.Header, error) 
 	ctxWithTimeout, cancel := CtxWithTimeoutOrDefault(ctx, defaultTimeout)
 	defer cancel()
 
-	stateVars, err := c.GetProtocolStateVariablesPacaya(&bind.CallOpts{Context: ctxWithTimeout})
-	if err != nil {
-		return nil, err
-	}
+	// stateVars, err := c.GetProtocolStateVariablesPacaya(&bind.CallOpts{Context: ctxWithTimeout})
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	return c.L1.HeaderByNumber(ctxWithTimeout, new(big.Int).SetUint64(stateVars.Stats1.GenesisHeight))
+	// TODO(gustavo): Temporary return the latest L1 header. This should instead be the genesis of the minimal rollup.
+	return c.L1.HeaderByNumber(ctxWithTimeout, nil)
 }
 
 // GetBatchByID fetches the batch by ID from the Pacaya protocol.
