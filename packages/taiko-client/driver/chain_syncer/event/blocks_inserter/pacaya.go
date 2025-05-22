@@ -92,6 +92,7 @@ func (i *BlocksInserterPacaya) InsertBlocks(
 		parent          *types.Header
 		lastPayloadData *engine.ExecutableData
 	)
+	log.Info("allTxs", "txs", allTxs)
 
 	for j := range meta.GetBlocks() {
 		// Fetch the L2 parent block, if the node is just finished a P2P sync, we simply use the tracker's

@@ -329,11 +329,34 @@ func (s *Syncer) onPublished(
 		"attributes", len(event.Attributes),
 	)
 
+	// NOTE: This block of code is creating a dummy metadata object to pass to the blocks inserter
+	// This is a temporary solution until we have a better way to handle this
+	// What we need to do is to create a new metadata object that implements the TaikoBatchMetaDataPacaya interface
+	// I suspect some things might fail down the line if we don't do this
+
+	//*************************************************************************
+
+	// Fetch the transaction to get the blob hash
+	tx, isPending, err := s.rpc.L1.TransactionByHash(ctx, event.Raw.TxHash)
+	if err != nil {
+		return fmt.Errorf("failed to fetch transaction by hash: %w", err)
+	}
+
+	// Extract blob hashes from the transaction
+	var blobHashes []common.Hash
+	if tx.Type() == 3 { // EIP-4844 blob transaction
+		blobHashes = tx.BlobHashes()
+		log.Info("Found blob transaction", "txHash", tx.Hash(), "blobHashes", blobHashes)
+	} else {
+		log.Info("Transaction is not a blob transaction", "txHash", tx.Hash(), "txType", tx.Type())
+	}
+
 	// Create a placeholder metadata object from the Published event
 	meta := &placeholderPacayaMetadata{
-		event:   event,
-		blockID: blockID,
-		endIter: endIter,
+		event:      event,
+		blockID:    blockID,
+		endIter:    endIter,
+		blobHashes: blobHashes,
 	}
 
 	// Create a wrapper that implements TaikoProposalMetaData
@@ -345,6 +368,14 @@ func (s *Syncer) onPublished(
 	endIterAdapter := func() {
 		endIter()
 	}
+
+	log.Info("Inserting blocks with metadata",
+		"blockID", blockID,
+		"txHash", event.Raw.TxHash,
+		"isPending", isPending,
+		"blobHashes", blobHashes)
+
+	// ************************************************************************
 
 	if err := s.blocksInserterPacaya.InsertBlocks(ctx, wrappedMeta, endIterAdapter); err != nil {
 		return err
@@ -474,7 +505,7 @@ type placeholderPacayaMetadata struct {
 	event      *minimalBindings.IPublicationFeedPublished
 	blockID    *big.Int
 	endIter    eventIterator.EndPublishedEventIterFunc
-	BlobHashes []common.Hash
+	blobHashes []common.Hash
 }
 
 // Implement the TaikoBatchMetaDataPacaya interface methods
@@ -531,11 +562,7 @@ func (m *placeholderPacayaMetadata) GetLastBlockID() uint64 {
 }
 
 func (m *placeholderPacayaMetadata) GetBlobHashes() []common.Hash {
-	var blobHashes []common.Hash
-	for _, hash := range m.BlobHashes {
-		blobHashes = append(blobHashes, hash)
-	}
-	return blobHashes
+	return m.blobHashes
 }
 
 func (m *placeholderPacayaMetadata) GetAnchorBlockID() uint64 {

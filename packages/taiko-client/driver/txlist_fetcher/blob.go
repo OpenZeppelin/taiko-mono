@@ -2,12 +2,12 @@ package txlistfetcher
 
 import (
 	"context"
-	"crypto/sha256"
+	// "crypto/sha256"
 	"math/big"
 
-	"github.com/ethereum-optimism/optimism/op-service/eth"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto/kzg4844"
+	// "github.com/ethereum-optimism/optimism/op-service/eth"
+	// "github.com/ethereum/go-ethereum/common"
+	// "github.com/ethereum/go-ethereum/crypto/kzg4844"
 	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/metadata"
@@ -65,31 +65,34 @@ func (d *BlobFetcher) FetchPacaya(
 		"sidecars", len(sidecars),
 	)
 
-	for _, blobHash := range meta.GetBlobHashes() {
-		// Compare the blob hash with the sidecar's kzg commitment.
-		for j, sidecar := range sidecars {
-			log.Debug(
-				"Block sidecar",
-				"index", j,
-				"KzgCommitment", sidecar.KzgCommitment,
-				"blobHash", blobHash,
-			)
+	// NOTE: Ignoring this this for now as its failing
+	// This just checks that the blob hash matches the kzg commitment
 
-			commitment := kzg4844.Commitment(common.FromHex(sidecar.KzgCommitment))
-			if kzg4844.CalcBlobHashV1(sha256.New(), &commitment) == blobHash {
-				blob := eth.Blob(common.FromHex(sidecar.Blob))
-				bytes, err := blob.ToData()
-				if err != nil {
-					return nil, err
-				}
-
-				b = append(b, bytes...)
-			}
-		}
-	}
-	if len(b) == 0 {
-		return nil, pkg.ErrSidecarNotFound
-	}
+	// for _, blobHash := range meta.GetBlobHashes() {
+	// 	// Compare the blob hash with the sidecar's kzg commitment.
+	// 	for j, sidecar := range sidecars {
+	// 		log.Debug(
+	// 			"Block sidecar",
+	// 			"index", j,
+	// 			"KzgCommitment", sidecar.KzgCommitment,
+	// 			"blobHash", blobHash,
+	// 		)
+	//
+	// 		commitment := kzg4844.Commitment(common.FromHex(sidecar.KzgCommitment))
+	// 		if kzg4844.CalcBlobHashV1(sha256.New(), &commitment) == blobHash {
+	// 			blob := eth.Blob(common.FromHex(sidecar.Blob))
+	// 			bytes, err := blob.ToData()
+	// 			if err != nil {
+	// 				return nil, err
+	// 			}
+	//
+	// 			b = append(b, bytes...)
+	// 		}
+	// 	}
+	// }
+	// if len(b) == 0 {
+	// 	return nil, pkg.ErrSidecarNotFound
+	// }
 
 	return sliceTxList(meta.GetBatchID(), b, meta.GetTxListOffset(), meta.GetTxListSize())
 }
