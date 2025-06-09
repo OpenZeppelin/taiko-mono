@@ -506,6 +506,7 @@ type placeholderPacayaMetadata struct {
 	blockID    *big.Int
 	endIter    eventIterator.EndPublishedEventIterFunc
 	blobHashes []common.Hash
+	blocks     []pacayaBindings.ITaikoInboxBlockParams
 }
 
 // Implement the TaikoBatchMetaDataPacaya interface methods
@@ -574,7 +575,7 @@ func (m *placeholderPacayaMetadata) GetAnchorBlockHash() common.Hash {
 }
 
 func (m *placeholderPacayaMetadata) GetBlocks() []pacayaBindings.ITaikoInboxBlockParams {
-	return []pacayaBindings.ITaikoInboxBlockParams{}
+	return m.blocks
 }
 
 func (m *placeholderPacayaMetadata) GetBaseFeeConfig() *pacayaBindings.LibSharedDataBaseFeeConfig {
