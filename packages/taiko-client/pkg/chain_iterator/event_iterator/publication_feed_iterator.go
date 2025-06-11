@@ -18,19 +18,19 @@ import (
 // EndPublishedEventIterFunc ends the current iteration.
 type EndPublishedEventIterFunc func()
 
-// OnPublishedEvent represents the callback function which will be called when a PublicationFeed.Published event is
+// OnPublishedEvent represents the callback function which will be called when a NewTaikoInbox.Published event is
 // iterated.
 type OnPublishedEvent func(
 	context.Context,
-	*minimalBindings.IPublicationFeedPublished,
+	*minimalBindings.IInboxPublished,
 	EndPublishedEventIterFunc,
 ) error
 
-// PublishedIterator iterates the emitted PublicationFeed.Published events in the chain,
+// PublishedIterator iterates the emitted NewTaikoInbox.Published events in the chain,
 // with the awareness of reorganization.
 type PublishedIterator struct {
 	ctx                context.Context
-	publicationFeed    *minimalBindings.IPublicationFeed
+	publicationFeed    *minimalBindings.IInbox
 	blockBatchIterator *chainIterator.BlockBatchIterator
 	isEnd              bool
 }
@@ -38,7 +38,7 @@ type PublishedIterator struct {
 // PublishedIteratorConfig represents the configs of a Published event iterator.
 type PublishedIteratorConfig struct {
 	Client                *rpc.EthClient
-	PublicationFeed       *minimalBindings.IPublicationFeed
+	NewTaikoInbox         *minimalBindings.IInbox
 	MaxBlocksReadPerEpoch *uint64
 	StartHeight           *big.Int
 	EndHeight             *big.Int
@@ -52,7 +52,7 @@ func NewPublishedIterator(ctx context.Context, cfg *PublishedIteratorConfig) (*P
 		return nil, errors.New("invalid callback")
 	}
 
-	iterator := &PublishedIterator{ctx: ctx, publicationFeed: cfg.PublicationFeed}
+	iterator := &PublishedIterator{ctx: ctx, publicationFeed: cfg.NewTaikoInbox}
 
 	// Initialize the inner block iterator.
 	blockIterator, err := chainIterator.NewBlockBatchIterator(ctx, &chainIterator.BlockBatchIteratorConfig{
@@ -63,7 +63,7 @@ func NewPublishedIterator(ctx context.Context, cfg *PublishedIteratorConfig) (*P
 		BlockConfirmations:    cfg.BlockConfirmations,
 		OnBlocks: assemblePublishedIteratorCallback(
 			cfg.Client,
-			cfg.PublicationFeed,
+			cfg.NewTaikoInbox,
 			cfg.OnPublishedEvent,
 			iterator,
 		),
@@ -92,7 +92,7 @@ func (i *PublishedIterator) end() {
 // by a event iterator's inner block iterator.
 func assemblePublishedIteratorCallback(
 	client *rpc.EthClient,
-	publicationFeed *minimalBindings.IPublicationFeed,
+	publicationFeed *minimalBindings.IInbox,
 	callback OnPublishedEvent,
 	eventIter *PublishedIterator,
 ) chainIterator.OnBlocksFunc {
@@ -103,8 +103,8 @@ func assemblePublishedIteratorCallback(
 		endFunc chainIterator.EndIterFunc,
 	) error {
 		var (
-			endHeight  = end.Number.Uint64()
-			lastPubID  uint64
+			endHeight = end.Number.Uint64()
+			lastPubID uint64
 		)
 
 		// Iterate the Published events.
@@ -167,4 +167,5 @@ func assemblePublishedIteratorCallback(
 
 		return nil
 	}
-} 
+}
+

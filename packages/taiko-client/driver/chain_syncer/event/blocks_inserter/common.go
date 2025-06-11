@@ -385,7 +385,7 @@ func assembleCreateExecutionPayloadMetaPacaya(
 	)
 
 	// Assemble a TaikoAnchor.anchorV3 transaction
-	anchorBlockHeader, err := rpc.L1.HeaderByHash(ctx, meta.GetAnchorBlockHash())
+	// anchorBlockHeader, err := rpc.L1.HeaderByHash(ctx, meta.GetAnchorBlockHash())
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to fetch anchor block: %w", err)
 	}

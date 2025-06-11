@@ -31,7 +31,7 @@ var (
 
 // IVerifierMetaData contains all meta data concerning the IVerifier contract.
 var IVerifierMetaData = &bind.MetaData{
-	ABI: "[{\"type\":\"function\",\"name\":\"verifyProof\",\"inputs\":[{\"name\":\"startPublicationHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"endPublicationHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"startCheckPoint\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"endCheckPoint\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"numPublications\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"numDelayedPublications\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"proof\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"}]",
+	ABI: "[{\"type\":\"function\",\"name\":\"verifyProof\",\"inputs\":[{\"name\":\"startPublicationHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"endPublicationHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"startCheckPoint\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"endCheckPoint\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"numDelayedPublications\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"proof\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"}]",
 }
 
 // IVerifierABI is the input ABI used to generate the binding from.
@@ -180,23 +180,23 @@ func (_IVerifier *IVerifierTransactorRaw) Transact(opts *bind.TransactOpts, meth
 	return _IVerifier.Contract.contract.Transact(opts, method, params...)
 }
 
-// VerifyProof is a paid mutator transaction binding the contract method 0x1cb0110c.
+// VerifyProof is a paid mutator transaction binding the contract method 0xa2ea4714.
 //
-// Solidity: function verifyProof(bytes32 startPublicationHash, bytes32 endPublicationHash, bytes32 startCheckPoint, bytes32 endCheckPoint, uint256 numPublications, uint256 numDelayedPublications, bytes proof) returns()
-func (_IVerifier *IVerifierTransactor) VerifyProof(opts *bind.TransactOpts, startPublicationHash [32]byte, endPublicationHash [32]byte, startCheckPoint [32]byte, endCheckPoint [32]byte, numPublications *big.Int, numDelayedPublications *big.Int, proof []byte) (*types.Transaction, error) {
-	return _IVerifier.contract.Transact(opts, "verifyProof", startPublicationHash, endPublicationHash, startCheckPoint, endCheckPoint, numPublications, numDelayedPublications, proof)
+// Solidity: function verifyProof(bytes32 startPublicationHash, bytes32 endPublicationHash, bytes32 startCheckPoint, bytes32 endCheckPoint, uint256 numDelayedPublications, bytes proof) returns()
+func (_IVerifier *IVerifierTransactor) VerifyProof(opts *bind.TransactOpts, startPublicationHash [32]byte, endPublicationHash [32]byte, startCheckPoint [32]byte, endCheckPoint [32]byte, numDelayedPublications *big.Int, proof []byte) (*types.Transaction, error) {
+	return _IVerifier.contract.Transact(opts, "verifyProof", startPublicationHash, endPublicationHash, startCheckPoint, endCheckPoint, numDelayedPublications, proof)
 }
 
-// VerifyProof is a paid mutator transaction binding the contract method 0x1cb0110c.
+// VerifyProof is a paid mutator transaction binding the contract method 0xa2ea4714.
 //
-// Solidity: function verifyProof(bytes32 startPublicationHash, bytes32 endPublicationHash, bytes32 startCheckPoint, bytes32 endCheckPoint, uint256 numPublications, uint256 numDelayedPublications, bytes proof) returns()
-func (_IVerifier *IVerifierSession) VerifyProof(startPublicationHash [32]byte, endPublicationHash [32]byte, startCheckPoint [32]byte, endCheckPoint [32]byte, numPublications *big.Int, numDelayedPublications *big.Int, proof []byte) (*types.Transaction, error) {
-	return _IVerifier.Contract.VerifyProof(&_IVerifier.TransactOpts, startPublicationHash, endPublicationHash, startCheckPoint, endCheckPoint, numPublications, numDelayedPublications, proof)
+// Solidity: function verifyProof(bytes32 startPublicationHash, bytes32 endPublicationHash, bytes32 startCheckPoint, bytes32 endCheckPoint, uint256 numDelayedPublications, bytes proof) returns()
+func (_IVerifier *IVerifierSession) VerifyProof(startPublicationHash [32]byte, endPublicationHash [32]byte, startCheckPoint [32]byte, endCheckPoint [32]byte, numDelayedPublications *big.Int, proof []byte) (*types.Transaction, error) {
+	return _IVerifier.Contract.VerifyProof(&_IVerifier.TransactOpts, startPublicationHash, endPublicationHash, startCheckPoint, endCheckPoint, numDelayedPublications, proof)
 }
 
-// VerifyProof is a paid mutator transaction binding the contract method 0x1cb0110c.
+// VerifyProof is a paid mutator transaction binding the contract method 0xa2ea4714.
 //
-// Solidity: function verifyProof(bytes32 startPublicationHash, bytes32 endPublicationHash, bytes32 startCheckPoint, bytes32 endCheckPoint, uint256 numPublications, uint256 numDelayedPublications, bytes proof) returns()
-func (_IVerifier *IVerifierTransactorSession) VerifyProof(startPublicationHash [32]byte, endPublicationHash [32]byte, startCheckPoint [32]byte, endCheckPoint [32]byte, numPublications *big.Int, numDelayedPublications *big.Int, proof []byte) (*types.Transaction, error) {
-	return _IVerifier.Contract.VerifyProof(&_IVerifier.TransactOpts, startPublicationHash, endPublicationHash, startCheckPoint, endCheckPoint, numPublications, numDelayedPublications, proof)
+// Solidity: function verifyProof(bytes32 startPublicationHash, bytes32 endPublicationHash, bytes32 startCheckPoint, bytes32 endCheckPoint, uint256 numDelayedPublications, bytes proof) returns()
+func (_IVerifier *IVerifierTransactorSession) VerifyProof(startPublicationHash [32]byte, endPublicationHash [32]byte, startCheckPoint [32]byte, endCheckPoint [32]byte, numDelayedPublications *big.Int, proof []byte) (*types.Transaction, error) {
+	return _IVerifier.Contract.VerifyProof(&_IVerifier.TransactOpts, startPublicationHash, endPublicationHash, startCheckPoint, endCheckPoint, numDelayedPublications, proof)
 }

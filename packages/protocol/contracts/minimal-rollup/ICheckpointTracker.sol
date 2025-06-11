@@ -14,19 +14,25 @@ interface ICheckpointTracker {
     /// @return _ The last proven checkpoint
     function getProvenCheckpoint() external view returns (Checkpoint memory);
 
-    /// @notice Verifies a transition between two checkpoints. Update the latest `provenCheckpoint` if possible
+    /// @notice Verifies a transition between two checkpoints. Update the latest `provenCheckpoint`
+    /// if possible
     /// @param start The initial checkpoint before the transition
     /// @param end The final checkpoint after the transition
-    /// @param numPublications The number of publications that need to be processed between the two checkpoints.
-    /// Note that this is not necessarily (end.publicationId - start.publicationId) because there could be irrelevant
+    /// @param numPublications The number of publications that need to be processed between the two
+    /// checkpoints.
+    /// Note that this is not necessarily (end.publicationId - start.publicationId) because there
+    /// could be irrelevant
     /// publications.
-    /// @param numDelayedPublications The number of delayed publications from the total of `numPublications`
-    /// @param proof Arbitrary data passed to the `verifier` contract to confirm the transition validity
+    /// @param numDelayedPublications The number of delayed publications from the total of
+    /// `numPublications`
+    /// @param proof Arbitrary data passed to the `verifier` contract to confirm the transition
+    /// validity
     function proveTransition(
         Checkpoint calldata start,
         Checkpoint calldata end,
         uint256 numPublications,
         uint256 numDelayedPublications,
         bytes calldata proof
-    ) external;
+    )
+        external;
 }

@@ -57,7 +57,7 @@ func (s *ClientTestSuite) SetupTest() {
 	rpcCli, err := rpc.NewClient(context.Background(), &rpc.ClientConfig{
 		L1Endpoint:                  os.Getenv("L1_WS"),
 		L2Endpoint:                  os.Getenv("L2_WS"),
-		TaikoInboxAddress:           common.HexToAddress(os.Getenv("TAIKO_INBOX")),
+		NewTaikoInboxAddress:        common.HexToAddress(os.Getenv("TAIKO_INBOX")),
 		TaikoAnchorAddress:          common.HexToAddress(os.Getenv("TAIKO_ANCHOR")),
 		TaikoTokenAddress:           common.HexToAddress(os.Getenv("TAIKO_TOKEN")),
 		ProverSetAddress:            common.HexToAddress(os.Getenv("PROVER_SET")),

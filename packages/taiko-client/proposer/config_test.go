@@ -34,7 +34,7 @@ func (s *ProposerTestSuite) TestNewConfigFromCliContext() {
 		s.Nil(err)
 		s.Equal(l1Endpoint, c.L1Endpoint)
 		s.Equal(l2Endpoint, c.L2Endpoint)
-		s.Equal(taikoInbox, c.TaikoInboxAddress.String())
+		s.Equal(taikoInbox, c.NewTaikoInboxAddress.String())
 		s.Equal(taikoAnchor, c.TaikoAnchorAddress.String())
 		s.Equal(taikoToken, c.TaikoTokenAddress.String())
 		s.Equal(goldenTouchAddress, crypto.PubkeyToAddress(c.L1ProposerPrivKey.PublicKey))
@@ -52,7 +52,7 @@ func (s *ProposerTestSuite) TestNewConfigFromCliContext() {
 		"TestNewConfigFromCliContext",
 		"--" + flags.L1WSEndpoint.Name, l1Endpoint,
 		"--" + flags.L2HTTPEndpoint.Name, l2Endpoint,
-		"--" + flags.TaikoInboxAddress.Name, taikoInbox,
+		"--" + flags.NewTaikoInboxAddress.Name, taikoInbox,
 		"--" + flags.TaikoAnchorAddress.Name, taikoAnchor,
 		"--" + flags.TaikoTokenAddress.Name, taikoToken,
 		"--" + flags.L1ProposerPrivKey.Name, encoding.GoldenTouchPrivKey,
@@ -106,7 +106,7 @@ func (s *ProposerTestSuite) SetupApp() *cli.App {
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{Name: flags.L1WSEndpoint.Name},
 		&cli.StringFlag{Name: flags.L2HTTPEndpoint.Name},
-		&cli.StringFlag{Name: flags.TaikoInboxAddress.Name},
+		&cli.StringFlag{Name: flags.NewTaikoInboxAddress.Name},
 		&cli.StringFlag{Name: flags.TaikoAnchorAddress.Name},
 		&cli.StringFlag{Name: flags.TaikoTokenAddress.Name},
 		&cli.StringFlag{Name: flags.L1ProposerPrivKey.Name},

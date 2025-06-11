@@ -65,22 +65,22 @@ func SubscribeBatchProposedPacaya(
 }
 
 // SubscribeBatchesProvedPacaya subscribes the Pacaya protocol's BatchesProved events.
-func SubscribeBatchesProvedPacaya(
-	taikoInbox *pacayaBindings.TaikoInboxClient,
-	ch chan *pacayaBindings.TaikoInboxClientBatchesProved,
-) event.Subscription {
-	return SubscribeEvent("BatchesProved", func(ctx context.Context) (event.Subscription, error) {
-		sub, err := taikoInbox.WatchBatchesProved(nil, ch)
-		if err != nil {
-			log.Error("Create TaikoInbox.BatchesProved subscription error", "error", err)
-			return nil, err
-		}
-
-		defer sub.Unsubscribe()
-
-		return waitSubErr(ctx, sub)
-	})
-}
+// func SubscribeBatchesProvedPacaya(
+// 	taikoInbox *pacayaBindings.TaikoInboxClient,
+// 	ch chan *pacayaBindings.TaikoInboxClientBatchesProved,
+// ) event.Subscription {
+// 	return SubscribeEvent("BatchesProved", func(ctx context.Context) (event.Subscription, error) {
+// 		sub, err := taikoInbox.WatchBatchesProved(nil, ch)
+// 		if err != nil {
+// 			log.Error("Create TaikoInbox.BatchesProved subscription error", "error", err)
+// 			return nil, err
+// 		}
+//
+// 		defer sub.Unsubscribe()
+//
+// 		return waitSubErr(ctx, sub)
+// 	})
+// }
 
 // SubscribeChainHead subscribes the new chain heads.
 func SubscribeChainHead(

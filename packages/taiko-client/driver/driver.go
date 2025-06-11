@@ -40,7 +40,6 @@ type Driver struct {
 	preconfBlockServer *preconfBlocks.PreconfBlockAPIServer
 	state              *state.State
 	chainConfig        *config.ChainConfig
-	protocolConfig     config.ProtocolConfigs
 
 	l1HeadCh  chan *types.Header
 	l1HeadSub event.Subscription
@@ -101,8 +100,10 @@ func (d *Driver) InitFromConfig(ctx context.Context, cfg *Config) (err error) {
 	d.l1HeadSub = d.state.SubL1HeadsFeed(d.l1HeadCh)
 	d.chainConfig = config.NewChainConfig(
 		d.rpc.L2.ChainID,
-		d.rpc.PacayaClients.ForkHeights.Ontake,
-		d.rpc.PacayaClients.ForkHeights.Pacaya,
+		0,
+		0,
+		// d.rpc.PacayaClients.ForkHeights.Ontake,
+		// d.rpc.PacayaClients.ForkHeights.Pacaya,
 	)
 
 	if d.protocolConfig, err = d.rpc.GetProtocolConfigs(&bind.CallOpts{Context: d.ctx}); err != nil {
@@ -185,7 +186,7 @@ func (d *Driver) Start() error {
 			d.p2pSetup.TargetPeers(),
 		)
 
-		go d.cacheLookaheadLoop()
+		// go d.cacheLookaheadLoop()
 	}
 
 	return nil
@@ -269,43 +270,43 @@ func (d *Driver) ChainSyncer() *chainSyncer.L2ChainSyncer {
 }
 
 // reportProtocolStatus reports some protocol status intervally.
-func (d *Driver) reportProtocolStatus() {
-	var (
-		ticker          = time.NewTicker(protocolStatusReportInterval)
-		maxNumProposals = d.protocolConfig.MaxProposals()
-	)
-	d.wg.Add(1)
-
-	defer func() {
-		ticker.Stop()
-		d.wg.Done()
-	}()
-
-	for {
-		select {
-		case <-d.ctx.Done():
-			return
-		case <-ticker.C:
-			d.reportProtocolStatusPacaya(maxNumProposals)
-		}
-	}
-}
+// func (d *Driver) reportProtocolStatus() {
+// 	var (
+// 		ticker          = time.NewTicker(protocolStatusReportInterval)
+// 		maxNumProposals = d.protocolConfig.MaxProposals()
+// 	)
+// 	d.wg.Add(1)
+//
+// 	defer func() {
+// 		ticker.Stop()
+// 		d.wg.Done()
+// 	}()
+//
+// 	for {
+// 		select {
+// 		case <-d.ctx.Done():
+// 			return
+// 		case <-ticker.C:
+// 			d.reportProtocolStatusPacaya(maxNumProposals)
+// 		}
+// 	}
+// }
 
 // reportProtocolStatusPacaya reports some status for Pacaya protocol.
-func (d *Driver) reportProtocolStatusPacaya(maxNumProposals uint64) {
-	vars, err := d.rpc.GetProtocolStateVariablesPacaya(&bind.CallOpts{Context: d.ctx})
-	if err != nil {
-		log.Error("Failed to get protocol state variables", "error", err)
-		return
-	}
-
-	log.Info(
-		"📖 Protocol status",
-		"lastVerifiedBacthID", vars.Stats2.LastVerifiedBatchId,
-		"pendingBatchs", vars.Stats2.NumBatches-vars.Stats2.LastVerifiedBatchId-1,
-		"availableSlots", vars.Stats2.LastVerifiedBatchId+maxNumProposals-vars.Stats2.NumBatches,
-	)
-}
+// func (d *Driver) reportProtocolStatusPacaya(maxNumProposals uint64) {
+// 	vars, err := d.rpc.GetProtocolStateVariablesPacaya(&bind.CallOpts{Context: d.ctx})
+// 	if err != nil {
+// 		log.Error("Failed to get protocol state variables", "error", err)
+// 		return
+// 	}
+//
+// 	log.Info(
+// 		"📖 Protocol status",
+// 		"lastVerifiedBacthID", vars.Stats2.LastVerifiedBatchId,
+// 		"pendingBatchs", vars.Stats2.NumBatches-vars.Stats2.LastVerifiedBatchId-1,
+// 		"availableSlots", vars.Stats2.LastVerifiedBatchId+maxNumProposals-vars.Stats2.NumBatches,
+// 	)
+// }
 
 // exchangeTransitionConfigLoop keeps exchanging transition configs with the
 // L2 execution engine.
@@ -338,111 +339,111 @@ func (d *Driver) exchangeTransitionConfigLoop() {
 }
 
 // cacheLookaheadLoop keeps updating the lookahead info for the preconf block server.
-func (d *Driver) cacheLookaheadLoop() {
-	if d.rpc.L1Beacon == nil {
-		log.Warn("`--l1.beacon` flag value is empty, skipping lookahead cache")
-		return
-	}
-
-	ticker := time.NewTicker(time.Duration(d.rpc.L1Beacon.SecondsPerSlot) / 3)
-	d.wg.Add(1)
-
-	defer func() {
-		ticker.Stop()
-		d.wg.Done()
-	}()
-
-	var (
-		seenBlockNumber uint64 = 0
-		lastSlot        uint64 = 0
-		opWin                  = preconfBlocks.NewOpWindow(
-			d.PreconfHandoverSkipSlots,
-			d.rpc.L1Beacon.SlotsPerEpoch,
-		)
-	)
-
-	for {
-		select {
-		case <-d.ctx.Done():
-			return
-		case <-ticker.C:
-			var (
-				currentEpoch     = d.rpc.L1Beacon.CurrentEpoch()
-				currentSlot      = d.rpc.L1Beacon.CurrentSlot()
-				slotInEpoch      = d.rpc.L1Beacon.SlotInEpoch()
-				slotsLeftInEpoch = d.rpc.L1Beacon.SlotsPerEpoch - d.rpc.L1Beacon.SlotInEpoch()
-			)
-
-			latestSeenBlockNumber, err := d.rpc.L1.BlockNumber(d.ctx)
-			if err != nil {
-				log.Error("Failed to fetch the latest L1 head for lookahead", "error", err)
-				continue
-			}
-
-			if latestSeenBlockNumber == seenBlockNumber {
-				// Leave some grace period for the block to arrive.
-				if lastSlot != currentSlot &&
-					uint64(time.Now().UTC().Unix())-d.rpc.L1Beacon.TimestampOfSlot(currentSlot) > 6 {
-					log.Warn(
-						"Lookahead possible missed slot detected",
-						"currentSlot", currentSlot,
-						"latestSeenBlockNumber", latestSeenBlockNumber,
-					)
-
-					lastSlot = currentSlot
-				}
-
-				continue
-			}
-
-			lastSlot = currentSlot
-			seenBlockNumber = latestSeenBlockNumber
-
-			currOp, err := d.rpc.GetPreconfWhiteListOperator(nil)
-			if err != nil {
-				log.Warn("Could not fetch current operator", "err", err)
-				continue
-			}
-
-			nextOp, err := d.rpc.GetNextPreconfWhiteListOperator(nil)
-			if err != nil {
-				log.Warn("Could not fetch next operator", "err", err)
-				continue
-			}
-
-			// push into our 3‑epoch ring
-			opWin.Push(currentEpoch, currOp, nextOp)
-
-			// Push next epoch (nextOp becomes currOp at next epoch)
-			opWin.Push(currentEpoch+1, nextOp, common.Address{}) // we don't know next-next-op, safe to leave zero
-
-			var (
-				currRanges = opWin.SequencingWindowSplit(d.PreconfOperatorAddress, true)
-				nextRanges = opWin.SequencingWindowSplit(d.PreconfOperatorAddress, false)
-			)
-
-			d.preconfBlockServer.UpdateLookahead(&preconfBlocks.Lookahead{
-				CurrOperator: currOp,
-				NextOperator: nextOp,
-				CurrRanges:   currRanges,
-				NextRanges:   nextRanges,
-				UpdatedAt:    time.Now().UTC(),
-			})
-
-			log.Info(
-				"Lookahead information refreshed",
-				"currentSlot", currentSlot,
-				"currentEpoch", currentEpoch,
-				"slotsLeftInEpoch", slotsLeftInEpoch,
-				"slotInEpoch", slotInEpoch,
-				"currOp", currOp.Hex(),
-				"nextOp", nextOp.Hex(),
-				"currRanges", currRanges,
-				"nextRanges", nextRanges,
-			)
-		}
-	}
-}
+// func (d *Driver) cacheLookaheadLoop() {
+// 	if d.rpc.L1Beacon == nil {
+// 		log.Warn("`--l1.beacon` flag value is empty, skipping lookahead cache")
+// 		return
+// 	}
+//
+// 	ticker := time.NewTicker(time.Duration(d.rpc.L1Beacon.SecondsPerSlot) / 3)
+// 	d.wg.Add(1)
+//
+// 	defer func() {
+// 		ticker.Stop()
+// 		d.wg.Done()
+// 	}()
+//
+// 	var (
+// 		seenBlockNumber uint64 = 0
+// 		lastSlot        uint64 = 0
+// 		opWin                  = preconfBlocks.NewOpWindow(
+// 			d.PreconfHandoverSkipSlots,
+// 			d.rpc.L1Beacon.SlotsPerEpoch,
+// 		)
+// 	)
+//
+// 	for {
+// 		select {
+// 		case <-d.ctx.Done():
+// 			return
+// 		case <-ticker.C:
+// 			var (
+// 				currentEpoch     = d.rpc.L1Beacon.CurrentEpoch()
+// 				currentSlot      = d.rpc.L1Beacon.CurrentSlot()
+// 				slotInEpoch      = d.rpc.L1Beacon.SlotInEpoch()
+// 				slotsLeftInEpoch = d.rpc.L1Beacon.SlotsPerEpoch - d.rpc.L1Beacon.SlotInEpoch()
+// 			)
+//
+// 			latestSeenBlockNumber, err := d.rpc.L1.BlockNumber(d.ctx)
+// 			if err != nil {
+// 				log.Error("Failed to fetch the latest L1 head for lookahead", "error", err)
+// 				continue
+// 			}
+//
+// 			if latestSeenBlockNumber == seenBlockNumber {
+// 				// Leave some grace period for the block to arrive.
+// 				if lastSlot != currentSlot &&
+// 					uint64(time.Now().UTC().Unix())-d.rpc.L1Beacon.TimestampOfSlot(currentSlot) > 6 {
+// 					log.Warn(
+// 						"Lookahead possible missed slot detected",
+// 						"currentSlot", currentSlot,
+// 						"latestSeenBlockNumber", latestSeenBlockNumber,
+// 					)
+//
+// 					lastSlot = currentSlot
+// 				}
+//
+// 				continue
+// 			}
+//
+// 			lastSlot = currentSlot
+// 			seenBlockNumber = latestSeenBlockNumber
+//
+// 			// currOp, err := d.rpc.GetPreconfWhiteListOperator(nil)
+// 			// if err != nil {
+// 			// 	log.Warn("Could not fetch current operator", "err", err)
+// 			// 	continue
+// 			// }
+//
+// 			// nextOp, err := d.rpc.GetNextPreconfWhiteListOperator(nil)
+// 			// if err != nil {
+// 			// 	log.Warn("Could not fetch next operator", "err", err)
+// 			// 	continue
+// 			// }
+//
+// 			// push into our 3‑epoch ring
+// 			// opWin.Push(currentEpoch, currOp, nextOp)
+//
+// 			// Push next epoch (nextOp becomes currOp at next epoch)
+// 			// opWin.Push(currentEpoch+1, nextOp, common.Address{}) // we don't know next-next-op, safe to leave zero
+//
+// 			// var (
+// 			// 	currRanges = opWin.SequencingWindowSplit(d.PreconfOperatorAddress, true)
+// 			// 	nextRanges = opWin.SequencingWindowSplit(d.PreconfOperatorAddress, false)
+// 			// )
+//
+// 			// d.preconfBlockServer.UpdateLookahead(&preconfBlocks.Lookahead{
+// 			// 	CurrOperator: currOp,
+// 			// 	NextOperator: nextOp,
+// 			// 	CurrRanges:   currRanges,
+// 			// 	NextRanges:   nextRanges,
+// 			// 	UpdatedAt:    time.Now().UTC(),
+// 			// })
+// 			//
+// 			// log.Info(
+// 			// 	"Lookahead information refreshed",
+// 			// 	"currentSlot", currentSlot,
+// 			// 	"currentEpoch", currentEpoch,
+// 			// 	"slotsLeftInEpoch", slotsLeftInEpoch,
+// 			// 	"slotInEpoch", slotInEpoch,
+// 			// 	"currOp", currOp.Hex(),
+// 			// 	"nextOp", nextOp.Hex(),
+// 			// 	"currRanges", currRanges,
+// 			// 	"nextRanges", nextRanges,
+// 			// )
+// 		}
+// 	}
+// }
 
 // Name returns the application name.
 func (d *Driver) Name() string {

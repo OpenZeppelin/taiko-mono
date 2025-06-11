@@ -60,8 +60,8 @@ func (s *State) init(ctx context.Context) error {
 	if err := s.initGenesisHeight(ctx); err != nil {
 		return err
 	}
-	s.OnTakeForkHeight = new(big.Int).SetUint64(s.rpc.PacayaClients.ForkHeights.Ontake)
-	s.PacayaForkHeight = new(big.Int).SetUint64(s.rpc.PacayaClients.ForkHeights.Pacaya)
+	// s.OnTakeForkHeight = new(big.Int).SetUint64(s.rpc.PacayaClients.ForkHeights.Ontake)
+	// s.PacayaForkHeight = new(big.Int).SetUint64(s.rpc.PacayaClients.ForkHeights.Pacaya)
 
 	log.Info("Genesis L1 height", "height", s.GenesisL1Height)
 	log.Info("OnTake fork height", "blockID", s.OnTakeForkHeight)
@@ -106,20 +106,20 @@ func (s *State) eventLoop(ctx context.Context) {
 		batchesVerifiedPacayaCh = make(chan *pacayaBindings.TaikoInboxClientBatchesVerified, 10)
 
 		// Subscriptions.
-		l1HeadSub                  = rpc.SubscribeChainHead(s.rpc.L1, l1HeadCh)
-		l2HeadSub                  = rpc.SubscribeChainHead(s.rpc.L2, l2HeadCh)
-		l2BatchesVerifiedPacayaSub = rpc.SubscribeBatchesVerifiedPacaya(
-			s.rpc.PacayaClients.TaikoInbox,
-			batchesVerifiedPacayaCh,
-		)
-		l2BatchesProvedPacayaSub = rpc.SubscribeBatchesProvedPacaya(s.rpc.PacayaClients.TaikoInbox, batchesProvedPacayaCh)
+		l1HeadSub = rpc.SubscribeChainHead(s.rpc.L1, l1HeadCh)
+		l2HeadSub = rpc.SubscribeChainHead(s.rpc.L2, l2HeadCh)
+		// l2BatchesVerifiedPacayaSub = rpc.SubscribeBatchesVerifiedPacaya(
+		// 	s.rpc.PacayaClients.TaikoInbox,
+		// 	batchesVerifiedPacayaCh,
+		// )
+		// l2BatchesProvedPacayaSub = rpc.SubscribeBatchesProvedPacaya(s.rpc.PacayaClients.TaikoInbox, batchesProvedPacayaCh)
 	)
 
 	defer func() {
 		l1HeadSub.Unsubscribe()
 		l2HeadSub.Unsubscribe()
-		l2BatchesVerifiedPacayaSub.Unsubscribe()
-		l2BatchesProvedPacayaSub.Unsubscribe()
+		// l2BatchesVerifiedPacayaSub.Unsubscribe()
+		// l2BatchesProvedPacayaSub.Unsubscribe()
 	}()
 
 	for {

@@ -11,6 +11,7 @@ interface IDelayedInclusionStore {
     event DelayedInclusionProcessed(Inclusion[] inclusionsList);
 
     /// @notice Register a delayed publication for later inclusion
-    /// @param blobIndices An array of blob indices to be registered where the delayed publications are included
+    /// @param blobIndices An array of blob indices to be registered where the delayed publications
+    /// are included
     function publishDelayed(uint256[] memory blobIndices) external;
 }

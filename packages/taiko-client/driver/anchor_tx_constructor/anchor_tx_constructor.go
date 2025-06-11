@@ -13,7 +13,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/encoding"
-	pacayaBindings "github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/pacaya"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/signer"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/pkg/rpc"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/pkg/utils"
@@ -66,7 +65,7 @@ func (c *AnchorTxConstructor) AssembleAnchorV3Tx(
 		"baseFee", utils.WeiToGWei(baseFee),
 	)
 
-	return c.rpc.PacayaClients.TaikoAnchor.AnchorV3(
+	return c.rpc.MinimalRollupClients.TaikoAnchor.AnchorV3(
 		opts,
 		anchorBlockID.Uint64(),
 		anchorStateRoot,
@@ -102,9 +101,9 @@ func (c *AnchorTxConstructor) transactOpts(
 	)
 
 	gasLimit := consensus.AnchorGasLimit
-	if l2Height.Uint64() >= c.rpc.PacayaClients.ForkHeights.Pacaya {
-		gasLimit = consensus.AnchorV3GasLimit
-	}
+	// if l2Height.Uint64() >= c.rpc.PacayaClients.ForkHeights.Pacaya {
+	// 	gasLimit = consensus.AnchorV3GasLimit
+	// }
 
 	return &bind.TransactOpts{
 		From: consensus.GoldenTouchAccount,

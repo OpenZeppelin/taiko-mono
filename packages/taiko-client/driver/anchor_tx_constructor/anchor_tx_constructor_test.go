@@ -11,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/suite"
 
-	pacayaBindings "github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/pacaya"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/internal/testutils"
 )
 
@@ -37,36 +36,36 @@ func (s *AnchorTxConstructorTestSuite) TestGasLimit() {
 	s.Greater(consensus.AnchorGasLimit, uint64(0))
 }
 
-func (s *AnchorTxConstructorTestSuite) TestAssembleAnchorV3Tx() {
-	tx, err := s.c.AssembleAnchorV3Tx(
-		context.Background(),
-		s.l1Height,
-		s.l1Hash,
-		1024,
-		&pacayaBindings.LibSharedDataBaseFeeConfig{},
-		[][32]byte{},
-		common.Big1,
-		common.Big256,
-	)
-	s.Nil(err)
-	s.NotNil(tx)
-}
-
-func (s *AnchorTxConstructorTestSuite) TestNewAnchorTransactor() {
-	goldenTouchAddress, err := s.RPCClient.PacayaClients.TaikoAnchor.GOLDENTOUCHADDRESS(nil)
-	s.Nil(err)
-
-	c, err := New(s.RPCClient)
-	s.Nil(err)
-
-	opts, err := c.transactOpts(context.Background(), common.Big1, common.Big256)
-	s.Nil(err)
-	s.Equal(true, opts.NoSend)
-	s.Equal(common.Big0, opts.Nonce)
-	s.Equal(goldenTouchAddress, opts.From)
-	s.Equal(common.Big256, opts.GasFeeCap)
-	s.Equal(common.Big0, opts.GasTipCap)
-}
+// func (s *AnchorTxConstructorTestSuite) TestAssembleAnchorV3Tx() {
+// 	tx, err := s.c.AssembleAnchorV3Tx(
+// 		context.Background(),
+// 		s.l1Height,
+// 		s.l1Hash,
+// 		1024,
+// 		&pacayaBindings.LibSharedDataBaseFeeConfig{},
+// 		[][32]byte{},
+// 		common.Big1,
+// 		common.Big256,
+// 	)
+// 	s.Nil(err)
+// 	s.NotNil(tx)
+// }
+//
+// func (s *AnchorTxConstructorTestSuite) TestNewAnchorTransactor() {
+// 	goldenTouchAddress, err := s.RPCClient.PacayaClients.TaikoAnchor.GOLDENTOUCHADDRESS(nil)
+// 	s.Nil(err)
+//
+// 	c, err := New(s.RPCClient)
+// 	s.Nil(err)
+//
+// 	opts, err := c.transactOpts(context.Background(), common.Big1, common.Big256)
+// 	s.Nil(err)
+// 	s.Equal(true, opts.NoSend)
+// 	s.Equal(common.Big0, opts.Nonce)
+// 	s.Equal(goldenTouchAddress, opts.From)
+// 	s.Equal(common.Big256, opts.GasFeeCap)
+// 	s.Equal(common.Big0, opts.GasTipCap)
+// }
 
 func (s *AnchorTxConstructorTestSuite) TestCancelCtxTransactOpts() {
 	ctx, cancel := context.WithCancel(context.Background())

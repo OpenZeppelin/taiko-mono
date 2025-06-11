@@ -1,3 +1,6 @@
+participants:
+  - el_type: geth
+    cl_type: lighthouse
 network_params:
+  seconds_per_slot: 3
   preset: "minimal"
-  network: "holesky"

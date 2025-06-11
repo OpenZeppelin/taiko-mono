@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.24;
 
 interface IVerifier {
     /// @notice Verifies a proof of a checkpoint between two publication hashes
@@ -8,8 +8,8 @@ interface IVerifier {
         bytes32 endPublicationHash,
         bytes32 startCheckPoint,
         bytes32 endCheckPoint,
-        uint256 numPublications,
         uint256 numDelayedPublications,
         bytes calldata proof
-    ) external;
+    )
+        external;
 }
