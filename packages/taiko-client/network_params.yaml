@@ -1,3 +1,11 @@
 network_params:
   preset: "minimal"
   network: "holesky"
+
+port_publisher:
+  el:
+    enabled: false
+    public_port_start: 32000
+  cl:
+    enabled: false
+    public_port_start: 33000
