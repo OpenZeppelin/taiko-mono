@@ -15,7 +15,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/encoding"
-	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/pacaya"
+	// "github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/pacaya"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/internal/metrics"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/pkg/config"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/pkg/rpc"
@@ -82,19 +82,19 @@ func NewBuilderWithFallback(
 func (b *TxBuilderWithFallback) BuildPacaya(
 	ctx context.Context,
 	txBatch []types.Transactions,
-	forcedInclusion *pacaya.IForcedInclusionStoreForcedInclusion,
-	minTxsPerForcedInclusion *big.Int,
+	// forcedInclusion *pacaya.IForcedInclusionStoreForcedInclusion,
+	// minTxsPerForcedInclusion *big.Int,
 	parentMetahash common.Hash,
 ) (*txmgr.TxCandidate, error) {
 	// If calldata is the only option, just use it.
-	if b.blobTransactionBuilder == nil {
-		return b.calldataTransactionBuilder.BuildPacaya(
-			ctx, txBatch, forcedInclusion, minTxsPerForcedInclusion, parentMetahash,
-		)
-	}
+	// if b.blobTransactionBuilder == nil {
+	// 	return b.calldataTransactionBuilder.BuildPacaya(
+	// 		ctx, txBatch, forcedInclusion, minTxsPerForcedInclusion, parentMetahash,
+	// 	)
+	// }
 	// If blob is enabled, and fallback is not enabled, just build a blob transaction.
 	if !b.fallback {
-		return b.blobTransactionBuilder.BuildPacaya(ctx, txBatch, forcedInclusion, minTxsPerForcedInclusion, parentMetahash)
+		return b.blobTransactionBuilder.BuildPacaya(ctx, txBatch, parentMetahash)
 	}
 
 	// Otherwise, compare the cost, and choose the cheaper option.
@@ -111,8 +111,6 @@ func (b *TxBuilderWithFallback) BuildPacaya(
 		if txWithCalldata, err = b.calldataTransactionBuilder.BuildPacaya(
 			ctx,
 			txBatch,
-			forcedInclusion,
-			minTxsPerForcedInclusion,
 			parentMetahash,
 		); err != nil {
 			return fmt.Errorf("failed to build type-2 transaction: %w", err)
@@ -126,8 +124,6 @@ func (b *TxBuilderWithFallback) BuildPacaya(
 		if txWithBlob, err = b.blobTransactionBuilder.BuildPacaya(
 			ctx,
 			txBatch,
-			forcedInclusion,
-			minTxsPerForcedInclusion,
 			parentMetahash,
 		); err != nil {
 			return fmt.Errorf("failed to build type-3 transaction: %w", err)
@@ -142,7 +138,7 @@ func (b *TxBuilderWithFallback) BuildPacaya(
 		log.Error("Failed to estimate transactions cost, will build a type-3 transaction", "error", err)
 		metrics.ProposerCostEstimationError.Inc()
 		// If there is an error, just build a blob transaction.
-		return b.blobTransactionBuilder.BuildPacaya(ctx, txBatch, forcedInclusion, minTxsPerForcedInclusion, parentMetahash)
+		return b.blobTransactionBuilder.BuildPacaya(ctx, txBatch, parentMetahash)
 	}
 
 	var (

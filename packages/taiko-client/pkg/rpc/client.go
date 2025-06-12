@@ -66,7 +66,7 @@ type ClientConfig struct {
 	L2Endpoint                  string
 	L1BeaconEndpoint            string
 	L2CheckPoint                string
-	NewTaikoInboxAddress        common.Address
+	TaikoInboxAddress        common.Address
 	TaikoWrapperAddress         common.Address
 	TaikoAnchorAddress          common.Address
 	TaikoTokenAddress           common.Address
@@ -74,14 +74,14 @@ type ClientConfig struct {
 	PreconfWhitelistAddress     common.Address
 	ProverSetAddress            common.Address
 	// Minimal Rollup Addresses
-	ProverManagerAddress common.Address
-	ProposerFeesAddress  common.Address
-	VerifierAddress      common.Address
-	LookaheadAddress     common.Address
-	InboxAddress         common.Address
-	L2EngineEndpoint     string
-	JwtSecret            string
-	Timeout              time.Duration
+	CheckpointTrackerAddress common.Address
+	ProverManagerAddress     common.Address
+	ProposerFeesAddress      common.Address
+	VerifierAddress          common.Address
+	LookaheadAddress         common.Address
+	L2EngineEndpoint         string
+	JwtSecret                string
+	Timeout                  time.Duration
 }
 
 // NewClient initializes all RPC clients used by Taiko client software.
@@ -162,7 +162,7 @@ func NewClient(ctx context.Context, cfg *ClientConfig) (*Client, error) {
 
 	// Ensure that the genesis block hash of L1 and L2 match.
 	//TODO(gustavo): Check if we should add this back
-	// if err := c.ensureGenesisMatched(ctxWithTimeout, cfg.NewTaikoInboxAddress); err != nil {
+	// if err := c.ensureGenesisMatched(ctxWithTimeout, cfg.TaikoInboxAddress); err != nil {
 	// 	return nil, fmt.Errorf("failed to ensure genesis block matched: %w", err)
 	// }
 
@@ -174,8 +174,12 @@ func (c *Client) initMinimalRollupClients(cfg *ClientConfig) error {
 	minimalClients := &MinimalRollupClients{}
 	var err error
 
-	if minimalClients.NewTaikoInbox, err = minimalBindings.NewIInbox(cfg.NewTaikoInboxAddress, c.L1); err != nil {
+	if minimalClients.NewTaikoInbox, err = minimalBindings.NewIInbox(cfg.TaikoInboxAddress, c.L1); err != nil {
 		return fmt.Errorf("failed to initialize PublicationFeed client: %w", err)
+	}
+
+	if minimalClients.CheckpointTracker, err = minimalBindings.NewICheckpointTracker(cfg.CheckpointTrackerAddress, c.L1); err != nil {
+		return fmt.Errorf("failed to initialize CheckpointTracker client: %w", err)
 	}
 
 	// if cfg.ProverManagerAddress.Hex() != ZeroAddress.Hex() {
@@ -199,12 +203,6 @@ func (c *Client) initMinimalRollupClients(cfg *ClientConfig) error {
 	if cfg.LookaheadAddress.Hex() != ZeroAddress.Hex() {
 		if minimalClients.Lookahead, err = minimalBindings.NewILookahead(cfg.LookaheadAddress, c.L1); err != nil {
 			return fmt.Errorf("failed to initialize Lookahead client: %w", err)
-		}
-	}
-
-	if cfg.InboxAddress.Hex() != ZeroAddress.Hex() {
-		if minimalClients.Inbox, err = minimalBindings.NewIInbox(cfg.InboxAddress, c.L1); err != nil {
-			return fmt.Errorf("failed to initialize Inbox client: %w", err)
 		}
 	}
 

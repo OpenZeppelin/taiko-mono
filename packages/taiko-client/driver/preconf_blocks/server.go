@@ -462,14 +462,17 @@ func (s *PreconfBlockAPIServer) ImportPendingBlocksFromCache(ctx context.Context
 
 // P2PSequencerAddress implements the p2p.GossipRuntimeConfig interface.
 func (s *PreconfBlockAPIServer) P2PSequencerAddress() common.Address {
-	operatorAddress, err := s.rpc.GetPreconfWhiteListOperator(nil)
-	if err != nil || operatorAddress == (common.Address{}) {
-		log.Warn("Failed to get current preconf whitelist operator address", "error", err)
-		return common.Address{}
-	}
+	// TODO: Uncomment this when we have the preconfer whitelist contract
 
-	log.Info("Current operator address for epoch as P2P sequencer", "address", operatorAddress.Hex())
+	// operatorAddress, err := s.rpc.GetPreconfWhiteListOperator(nil)
+	// if err != nil || operatorAddress == (common.Address{}) {
+	// 	log.Warn("Failed to get current preconf whitelist operator address", "error", err)
+	// 	return common.Address{}
+	// }
+	//
+	// log.Info("Current operator address for epoch as P2P sequencer", "address", operatorAddress.Hex())
 
+	var operatorAddress = common.Address{}
 	return operatorAddress
 }
 

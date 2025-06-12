@@ -69,14 +69,16 @@ func createExecutionPayloadsAndSetHead(
 	}
 
 	var lastVerifiedBlockHash common.Hash
-	lastVerifiedTS, err := rpc.GetLastVerifiedTransitionPacaya(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch last verified block: %w", err)
-	}
 
-	if meta.BlockID.Uint64() > lastVerifiedTS.BlockId {
-		lastVerifiedBlockHash = lastVerifiedTS.Ts.BlockHash
-	}
+	// TODO: get last verified block
+	// lastVerifiedTS, err := rpc.GetLastVerifiedTransitionPacaya(ctx)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to fetch last verified block: %w", err)
+	// }
+	//
+	// if meta.BlockID.Uint64() > lastVerifiedTS.BlockId {
+	// 	lastVerifiedBlockHash = lastVerifiedTS.Ts.BlockHash
+	// }
 
 	fc := &engine.ForkchoiceStateV1{
 		HeadBlockHash:      payload.BlockHash,
@@ -192,6 +194,7 @@ func isBatchPreconfirmed(
 	allTxs []*types.Transaction,
 	txListBytes []byte,
 	parent *types.Header,
+	publicationId *big.Int,
 ) (*types.Header, error) {
 	// Check each block in the batch, and if the all blocks are preconfirmed, return the header of the last block.
 	for i := 0; i < len(metadata.Pacaya().GetBlocks()); i++ {
@@ -201,6 +204,7 @@ func isBatchPreconfirmed(
 			anchorConstructor,
 			metadata,
 			allTxs,
+			publicationId,
 			parent,
 			i,
 		)
@@ -346,6 +350,7 @@ func assembleCreateExecutionPayloadMetaPacaya(
 	anchorConstructor *anchorTxConstructor.AnchorTxConstructor,
 	metadata metadata.TaikoProposalMetaData,
 	allTxsInBatch []*types.Transaction,
+	publicationId *big.Int,
 	parent *types.Header,
 	blockIndex int,
 ) (*createExecutionPayloadsMetaData, *types.Transaction, error) {
@@ -370,7 +375,7 @@ func assembleCreateExecutionPayloadMetaPacaya(
 	for i := len(meta.GetBlocks()) - 1; i > blockIndex; i-- {
 		timestamp = timestamp - uint64(meta.GetBlocks()[i].TimeShift)
 	}
-	baseFee, err := rpc.CalculateBaseFee(ctx, parent, meta.GetBaseFeeConfig(), timestamp)
+	baseFee, err := rpc.CalculateBaseFee(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -385,7 +390,7 @@ func assembleCreateExecutionPayloadMetaPacaya(
 	)
 
 	// Assemble a TaikoAnchor.anchorV3 transaction
-	// anchorBlockHeader, err := rpc.L1.HeaderByHash(ctx, meta.GetAnchorBlockHash())
+	anchorBlockHeader, err := rpc.L1.HeaderByHash(ctx, meta.GetAnchorBlockHash())
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to fetch anchor block: %w", err)
 	}
@@ -395,8 +400,8 @@ func assembleCreateExecutionPayloadMetaPacaya(
 		new(big.Int).SetUint64(meta.GetAnchorBlockID()),
 		anchorBlockHeader.Root,
 		parent.GasUsed,
-		meta.GetBaseFeeConfig(),
-		meta.GetBlocks()[blockIndex].SignalSlots,
+		publicationId,
+		*parent,
 		blockID,
 		baseFee,
 	)

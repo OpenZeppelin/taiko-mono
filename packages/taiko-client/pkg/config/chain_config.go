@@ -20,11 +20,16 @@ type ChainConfig struct {
 }
 
 // NewChainConfig creates a new ChainConfig instance.
-func NewChainConfig(chainID *big.Int, ontakeForkHeight uint64, pacayaForkHeight uint64) *ChainConfig {
+// func NewChainConfig(chainID *big.Int, ontakeForkHeight uint64, pacayaForkHeight uint64) *ChainConfig {
+
+// TODO: Add fork height
+func NewChainConfig(chainID *big.Int) *ChainConfig {
+	ontakeForkHeightZero := uint64(0)
+	pacayaForkHeightZero := uint64(0)
 	cfg := &ChainConfig{
 		ChainID:          chainID,
-		OntakeForkHeight: new(big.Int).SetUint64(ontakeForkHeight),
-		PacayaForkHeight: new(big.Int).SetUint64(pacayaForkHeight),
+		OntakeForkHeight: new(big.Int).SetUint64(ontakeForkHeightZero),
+		PacayaForkHeight: new(big.Int).SetUint64(pacayaForkHeightZero),
 	}
 
 	log.Info("")

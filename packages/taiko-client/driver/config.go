@@ -82,18 +82,20 @@ func NewConfigFromCliContext(c *cli.Context) (*Config, error) {
 	}
 
 	// Check P2P network flags and create the P2P configurations.
+
 	var (
 		clientConfig = &rpc.ClientConfig{
-			L1Endpoint:              c.String(flags.L1WSEndpoint.Name),
-			L1BeaconEndpoint:        beaconEndpoint,
-			L2Endpoint:              c.String(flags.L2WSEndpoint.Name),
-			L2CheckPoint:            l2CheckPoint,
-			NewTaikoInboxAddress:    common.HexToAddress(c.String(flags.NewTaikoInboxAddress.Name)),
-			TaikoAnchorAddress:      common.HexToAddress(c.String(flags.TaikoAnchorAddress.Name)),
-			PreconfWhitelistAddress: common.HexToAddress(c.String(flags.PreconfWhitelistAddress.Name)),
-			L2EngineEndpoint:        c.String(flags.L2AuthEndpoint.Name),
-			JwtSecret:               string(jwtSecret),
-			Timeout:                 c.Duration(flags.RPCTimeout.Name),
+			L1Endpoint:               c.String(flags.L1WSEndpoint.Name),
+			L1BeaconEndpoint:         beaconEndpoint,
+			L2Endpoint:               c.String(flags.L2WSEndpoint.Name),
+			L2CheckPoint:             l2CheckPoint,
+			TaikoInboxAddress:        common.HexToAddress(c.String(flags.TaikoInboxAddress.Name)),
+			CheckpointTrackerAddress: common.HexToAddress(c.String(flags.CheckpointTrackerAddress.Name)),
+			TaikoAnchorAddress:       common.HexToAddress(c.String(flags.TaikoAnchorAddress.Name)),
+			PreconfWhitelistAddress:  common.HexToAddress(c.String(flags.PreconfWhitelistAddress.Name)),
+			L2EngineEndpoint:         c.String(flags.L2AuthEndpoint.Name),
+			JwtSecret:                string(jwtSecret),
+			Timeout:                  c.Duration(flags.RPCTimeout.Name),
 		}
 		p2pConfigs    *p2p.Config
 		signerConfigs p2p.SignerSetup

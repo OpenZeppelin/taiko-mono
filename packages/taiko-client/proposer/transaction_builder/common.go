@@ -18,8 +18,8 @@ type ProposeBlocksTransactionBuilder interface {
 	BuildPacaya(
 		ctx context.Context,
 		txBatch []types.Transactions,
-		forcedInclusion *pacayaBindings.IForcedInclusionStoreForcedInclusion,
-		minTxsPerForcedInclusion *big.Int,
+		// forcedInclusion *pacayaBindings.IForcedInclusionStoreForcedInclusion,
+		// minTxsPerForcedInclusion *big.Int,
 		parentMetahash common.Hash,
 	) (*txmgr.TxCandidate, error)
 }

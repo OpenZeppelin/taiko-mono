@@ -2,6 +2,12 @@
 pragma solidity ^0.8.28;
 
 interface IInbox {
+    struct PublicationMetadata {
+        uint256 anchorBlockId;
+        bytes32 anchorBlockHash;
+        bool isDelayedInclusion;
+    }
+
     struct PublicationHeader {
         uint256 id;
         bytes32 prevHash;

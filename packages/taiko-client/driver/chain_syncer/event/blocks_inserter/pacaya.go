@@ -74,6 +74,9 @@ func (i *BlocksInserterPacaya) InsertBlocks(
 		txListBytes []byte
 	)
 
+	// TODO: GETPUBLICATIONID
+	var publicationId = new(big.Int).SetUint64(meta.GetBatchID().Uint64())
+
 	// Fetch transactions list.
 	if len(meta.GetBlobHashes()) != 0 {
 		if txListBytes, err = i.blobFetcher.FetchPacaya(ctx, meta); err != nil {
@@ -143,6 +146,7 @@ func (i *BlocksInserterPacaya) InsertBlocks(
 				allTxs,
 				txListBytes,
 				parent,
+				publicationId,
 			)
 			if err != nil {
 				log.Debug("Failed to check if batch is preconfirmed", "batchID", meta.GetBatchID(), "err", err)
@@ -172,6 +176,7 @@ func (i *BlocksInserterPacaya) InsertBlocks(
 			i.anchorConstructor,
 			metadata,
 			allTxs,
+			publicationId,
 			parent,
 			j,
 		)

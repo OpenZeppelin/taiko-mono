@@ -22,7 +22,7 @@ type Config struct {
 	L1WsEndpoint              string
 	L2WsEndpoint              string
 	L2HttpEndpoint            string
-	NewTaikoInboxAddress         common.Address
+	TaikoInboxAddress         common.Address
 	TaikoAnchorAddress        common.Address
 	TaikoTokenAddress         common.Address
 	ProverSetAddress          common.Address
@@ -86,7 +86,7 @@ func NewConfigFromCliContext(c *cli.Context) (*Config, error) {
 		L1WsEndpoint:          c.String(flags.L1WSEndpoint.Name),
 		L2WsEndpoint:          c.String(flags.L2WSEndpoint.Name),
 		L2HttpEndpoint:        c.String(flags.L2HTTPEndpoint.Name),
-		NewTaikoInboxAddress:     common.HexToAddress(c.String(flags.NewTaikoInboxAddress.Name)),
+		TaikoInboxAddress:     common.HexToAddress(c.String(flags.TaikoInboxAddress.Name)),
 		TaikoAnchorAddress:    common.HexToAddress(c.String(flags.TaikoAnchorAddress.Name)),
 		TaikoTokenAddress:     common.HexToAddress(c.String(flags.TaikoTokenAddress.Name)),
 		ProverSetAddress:      common.HexToAddress(c.String(flags.ProverSetAddress.Name)),

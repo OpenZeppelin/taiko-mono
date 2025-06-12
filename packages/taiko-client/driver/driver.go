@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
+
 	"github.com/ethereum-optimism/optimism/op-node/p2p"
 	"github.com/ethereum-optimism/optimism/op-node/rollup"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -40,6 +41,7 @@ type Driver struct {
 	preconfBlockServer *preconfBlocks.PreconfBlockAPIServer
 	state              *state.State
 	chainConfig        *config.ChainConfig
+	protocolConfig     config.ProtocolConfigs
 
 	l1HeadCh  chan *types.Header
 	l1HeadSub event.Subscription
@@ -100,8 +102,6 @@ func (d *Driver) InitFromConfig(ctx context.Context, cfg *Config) (err error) {
 	d.l1HeadSub = d.state.SubL1HeadsFeed(d.l1HeadCh)
 	d.chainConfig = config.NewChainConfig(
 		d.rpc.L2.ChainID,
-		0,
-		0,
 		// d.rpc.PacayaClients.ForkHeights.Ontake,
 		// d.rpc.PacayaClients.ForkHeights.Pacaya,
 	)
@@ -110,7 +110,7 @@ func (d *Driver) InitFromConfig(ctx context.Context, cfg *Config) (err error) {
 		return err
 	}
 
-	config.ReportProtocolConfigs(d.protocolConfig)
+	// config.ReportProtocolConfigs(d.protocolConfig)
 
 	if d.PreconfBlockServerPort > 0 {
 		// Initialize the preconf block server.

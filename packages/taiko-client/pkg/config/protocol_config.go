@@ -15,7 +15,7 @@ import (
 
 // Configs is an interface that provides Taiko protocol specific configurations.
 type ProtocolConfigs interface {
-	BaseFeeConfig() *pacayaBindings.LibSharedDataBaseFeeConfig
+	// BaseFeeConfig() *pacayaBindings.LibSharedDataBaseFeeConfig
 	BlockMaxGasLimit() uint32
 	ForkHeightsOntake() uint64
 	ForkHeightsPacaya() uint64
@@ -31,7 +31,7 @@ type ProtocolConfigs interface {
 func ReportProtocolConfigs(configs ProtocolConfigs) {
 	log.Info(
 		"Protocol configs",
-		"BaseFeeConfig", configs.BaseFeeConfig(),
+		// "BaseFeeConfig", configs.BaseFeeConfig(),
 		"BlockMaxGasLimit", configs.BlockMaxGasLimit(),
 		"ForkHeightsOntake", configs.ForkHeightsOntake(),
 		"ForkHeightsPacaya", configs.ForkHeightsPacaya(),

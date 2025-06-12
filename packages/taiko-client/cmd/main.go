@@ -11,7 +11,7 @@ import (
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/driver"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/internal/version"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/proposer"
-	"github.com/taikoxyz/taiko-mono/packages/taiko-client/prover"
+	// "github.com/taikoxyz/taiko-mono/packages/taiko-client/prover"
 )
 
 func main() {
@@ -41,13 +41,14 @@ func main() {
 			Description: "Taiko proposer software",
 			Action:      utils.SubcommandAction(new(proposer.Proposer)),
 		},
-		{
-			Name:        "prover",
-			Flags:       flags.ProverFlags,
-			Usage:       "Starts the prover software",
-			Description: "Taiko prover software",
-			Action:      utils.SubcommandAction(new(prover.Prover)),
-		},
+		// TODO: ADD BACK PROVER LOGIC
+		// {
+		// 	Name:        "prover",
+		// 	Flags:       flags.ProverFlags,
+		// 	Usage:       "Starts the prover software",
+		// 	Description: "Taiko prover software",
+		// 	Action:      utils.SubcommandAction(new(prover.Prover)),
+		// },
 	}
 
 	if err := app.Run(os.Args); err != nil {

@@ -6,13 +6,13 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
+	// "github.com/ethereum/go-ethereum/accounts/abi/bind"
+	// "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
 
-	pacayaBindings "github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/pacaya"
+	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/minimal"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/internal/metrics"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/pkg/rpc"
 )
@@ -60,14 +60,17 @@ func (s *State) init(ctx context.Context) error {
 	if err := s.initGenesisHeight(ctx); err != nil {
 		return err
 	}
-	// s.OnTakeForkHeight = new(big.Int).SetUint64(s.rpc.PacayaClients.ForkHeights.Ontake)
-	// s.PacayaForkHeight = new(big.Int).SetUint64(s.rpc.PacayaClients.ForkHeights.Pacaya)
+	s.OnTakeForkHeight = new(big.Int).SetUint64(0)
+	s.PacayaForkHeight = new(big.Int).SetUint64(0)
 
 	log.Info("Genesis L1 height", "height", s.GenesisL1Height)
 	log.Info("OnTake fork height", "blockID", s.OnTakeForkHeight)
 	log.Info("Pacaya fork height", "blockID", s.PacayaForkHeight)
 
 	// Set the L2 head's latest known L1 origin as current L1 sync cursor.
+
+	// TODO: Figure out how to get the latest L2 known L1 header.
+
 	latestL2KnownL1Header, err := s.rpc.LatestL2KnownL1Header(ctx)
 	if err != nil {
 		return err
@@ -100,39 +103,35 @@ func (s *State) eventLoop(ctx context.Context) {
 
 	var (
 		// Channels for subscriptions.
-		l1HeadCh                = make(chan *types.Header, 10)
-		l2HeadCh                = make(chan *types.Header, 10)
-		batchesProvedPacayaCh   = make(chan *pacayaBindings.TaikoInboxClientBatchesProved, 10)
-		batchesVerifiedPacayaCh = make(chan *pacayaBindings.TaikoInboxClientBatchesVerified, 10)
+		l1HeadCh                   = make(chan *types.Header, 10)
+		l2HeadCh                   = make(chan *types.Header, 10)
+		publicationProvenAlethiaCh = make(chan *minimal.ICheckpointTrackerCheckpointUpdated, 10)
 
 		// Subscriptions.
-		l1HeadSub = rpc.SubscribeChainHead(s.rpc.L1, l1HeadCh)
-		l2HeadSub = rpc.SubscribeChainHead(s.rpc.L2, l2HeadCh)
-		// l2BatchesVerifiedPacayaSub = rpc.SubscribeBatchesVerifiedPacaya(
-		// 	s.rpc.PacayaClients.TaikoInbox,
-		// 	batchesVerifiedPacayaCh,
-		// )
+		l1HeadSub                      = rpc.SubscribeChainHead(s.rpc.L1, l1HeadCh)
+		l2HeadSub                      = rpc.SubscribeChainHead(s.rpc.L2, l2HeadCh)
+		l2PublicationsProvenAlethiaSub = rpc.SubscribeCheckpointUpdatedAlethia(
+			s.rpc.MinimalRollupClients.CheckpointTracker,
+			publicationProvenAlethiaCh,
+		)
 		// l2BatchesProvedPacayaSub = rpc.SubscribeBatchesProvedPacaya(s.rpc.PacayaClients.TaikoInbox, batchesProvedPacayaCh)
 	)
 
 	defer func() {
 		l1HeadSub.Unsubscribe()
 		l2HeadSub.Unsubscribe()
-		// l2BatchesVerifiedPacayaSub.Unsubscribe()
-		// l2BatchesProvedPacayaSub.Unsubscribe()
+		l2PublicationsProvenAlethiaSub.Unsubscribe()
 	}()
 
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case e := <-batchesProvedPacayaCh:
-			log.Info("✅ Batches proven", "batchIDs", e.BatchIds, "verifier", e.Verifier)
-		case e := <-batchesVerifiedPacayaCh:
+		case e := <-publicationProvenAlethiaCh:
 			log.Info(
 				"📈 Batches verified",
-				"lastVerifiedBatchId", e.BatchId,
-				"lastVerifiedBlockHash", common.Hash(e.BlockHash),
+				"lastVerifiedCommitmentId", e.LatestCheckpoint.PublicationId,
+				"lastProvenCommitment", e.LatestCheckpoint.Commitment,
 			)
 		case newHead := <-l1HeadCh:
 			s.setL1Head(newHead)
@@ -191,13 +190,15 @@ func (s *State) IsPacaya(num *big.Int) bool {
 	return s.PacayaForkHeight.Cmp(num) <= 0
 }
 
+// TODO: GET GENESIS HEIGHT FROM CONTRACT
+
 // initGenesisHeight fetches the genesis height from the current protocol.
 func (s *State) initGenesisHeight(ctx context.Context) error {
-	stateVars, err := s.rpc.GetProtocolStateVariablesPacaya(&bind.CallOpts{Context: ctx})
-	if err != nil {
-		return err
-	}
+	// stateVars, err := s.rpc.GetProtocolStateVariablesPacaya(&bind.CallOpts{Context: ctx})
+	// if err != nil {
+	// 	return err
+	// }
 
-	s.GenesisL1Height = new(big.Int).SetUint64(stateVars.Stats1.GenesisHeight)
+	s.GenesisL1Height = new(big.Int).SetUint64(0)
 	return nil
 }

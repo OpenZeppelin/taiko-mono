@@ -68,7 +68,7 @@ var (
 		Category: commonCategory,
 		EnvVars:  []string{"JWT_SECRET"},
 	}
-	NewTaikoInboxAddress = &cli.StringFlag{
+	TaikoInboxAddress = &cli.StringFlag{
 		Name:     "taikoInbox",
 		Usage:    "TaikoInbox contract `address`",
 		Required: true,
@@ -88,6 +88,13 @@ var (
 		Required: false,
 		Category: commonCategory,
 		EnvVars:  []string{"TAIKO_TOKEN"},
+	}
+	CheckpointTrackerAddress = &cli.StringFlag{
+		Name:     "checkpointTracker",
+		Usage:    "CheckpointTracker contract `address`",
+		Required: true,
+		Category: commonCategory,
+		EnvVars:  []string{"CHECKPOINT_TRACKER"},
 	}
 
 	// Optional flags used by all client software.
@@ -161,8 +168,9 @@ var (
 var CommonFlags = []cli.Flag{
 	// Required
 	L1WSEndpoint,
-	NewTaikoInboxAddress,
+	TaikoInboxAddress,
 	TaikoAnchorAddress,
+	CheckpointTrackerAddress,
 	// Optional
 	ProverSetAddress,
 	Verbosity,

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-interface TaikoAnchor {
+interface ITaikoAnchor {
     struct BlockHeader {
         bytes32 parentHash;
         bytes32 omnersHash;
@@ -18,7 +18,7 @@ interface TaikoAnchor {
         bytes extraData;
         bytes32 mixedHash;
         uint64 nonce;
-        bytes32 baseFeePerGas;
+        uint256 baseFeePerGas;
         bytes32 withdrawalsRoot;
         uint64 blobGasUsed;
         uint64 excessBlobGas;
@@ -27,15 +27,19 @@ interface TaikoAnchor {
     }
 
     event Anchor(
-        uint256 publicationId, uint256 anchorBlockId, bytes32 anchorBlockHash, bytes32 parentGasUsed
+        uint256 publicationId, uint256 anchorBlockId, bytes32 anchorBlockHash, uint32 parentGasUsed
     );
+
+    function getPermissionedSender() external view returns (address);
+
+    function getBaseFee() external view returns (uint256);
 
     function anchor(
         uint256 _publicationId,
         uint256 _anchorBlockId,
         bytes32 _anchorBlockHash,
         BlockHeader calldata _anchorBlockHeader,
-        bytes32 _parentGasUsed
+        uint32 _parentGasUsed
     )
         external;
 

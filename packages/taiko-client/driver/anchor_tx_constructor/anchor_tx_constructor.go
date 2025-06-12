@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/encoding"
+	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/minimal"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/signer"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/pkg/rpc"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/pkg/utils"
@@ -42,8 +43,8 @@ func (c *AnchorTxConstructor) AssembleAnchorV3Tx(
 	anchorBlockID *big.Int,
 	anchorStateRoot common.Hash,
 	parentGasUsed uint64,
-	baseFeeConfig *pacayaBindings.LibSharedDataBaseFeeConfig,
-	signalSlots [][32]byte,
+	publicationId *big.Int,
+	blockHeader types.Header,
 	// Height of the L2 block which including the TaikoAnchor.anchorV3 transaction.
 	l2Height *big.Int,
 	baseFee *big.Int,
@@ -59,20 +60,39 @@ func (c *AnchorTxConstructor) AssembleAnchorV3Tx(
 		"anchorBlockId", anchorBlockID,
 		"anchorStateRoot", anchorStateRoot,
 		"parentGasUsed", parentGasUsed,
-		"gasIssuancePerSecond", baseFeeConfig.GasIssuancePerSecond,
-		"basefeeAdjustmentQuotient", baseFeeConfig.AdjustmentQuotient,
-		"signalSlots", len(signalSlots),
 		"baseFee", utils.WeiToGWei(baseFee),
 	)
 
-	return c.rpc.MinimalRollupClients.TaikoAnchor.AnchorV3(
-		opts,
-		anchorBlockID.Uint64(),
-		anchorStateRoot,
-		uint32(parentGasUsed),
-		*baseFeeConfig,
-		signalSlots,
-	)
+	taikoBlockHeader := ConvertToITaikoAnchorBlockHeader(&blockHeader)
+	return c.rpc.MinimalRollupClients.TaikoAnchor.Anchor(opts, publicationId, anchorBlockID, anchorStateRoot, *taikoBlockHeader, uint32(parentGasUsed))
+}
+
+func ConvertToITaikoAnchorBlockHeader(h *types.Header) *minimal.ITaikoAnchorBlockHeader {
+
+	return &minimal.ITaikoAnchorBlockHeader{
+		ParentHash:       h.ParentHash,
+		OmnersHash:       h.UncleHash,
+		Coinbase:         h.Coinbase,
+		StateRoot:        h.Root,
+		TransactionsRoot: h.TxHash,
+		ReceiptsRoot:     h.ReceiptHash,
+		LogsBloom:        h.Bloom[:],
+		Difficulty:       h.Difficulty,
+		Number:           h.Number,
+		GasLimit:         h.GasLimit,
+		GasUsed:          h.GasUsed,
+		Timestamp:        h.Time,
+		ExtraData:        h.Extra,
+		MixedHash:        h.MixDigest,
+		Nonce:            h.Nonce.Uint64(),
+
+		BaseFeePerGas:         h.BaseFee,
+		WithdrawalsRoot:       *h.WithdrawalsHash,
+		BlobGasUsed:           *h.BlobGasUsed,
+		ExcessBlobGas:         *h.ExcessBlobGas,
+		ParentBeaconBlockRoot: *h.ParentBeaconRoot,
+		RequestsHash:          *h.RequestsHash,
+	}
 }
 
 // transactOpts is a utility method to create some transact options of the anchor transaction in given L2 block with

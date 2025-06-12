@@ -112,14 +112,12 @@ func (p *Proposer) InitFromConfig(
 	p.txmgrSelector = utils.NewTxMgrSelector(txMgr, privateTxMgr, nil)
 	p.chainConfig = config.NewChainConfig(
 		p.rpc.L2.ChainID,
-		p.rpc.PacayaClients.ForkHeights.Ontake,
-		p.rpc.PacayaClients.ForkHeights.Pacaya,
 	)
 	p.txBuilder = builder.NewBuilderWithFallback(
 		p.rpc,
 		p.L1ProposerPrivKey,
 		cfg.L2SuggestedFeeRecipient,
-		cfg.NewTaikoInboxAddress,
+		cfg.TaikoInboxAddress,
 		cfg.TaikoWrapperAddress,
 		cfg.ProverSetAddress,
 		cfg.ProposeBlockTxGasLimit,
@@ -194,7 +192,6 @@ func (p *Proposer) fetchPoolContent(allowEmptyPoolContent bool) ([]types.Transac
 		p.MaxProposedTxListsPerEpoch,
 		minTip,
 		p.chainConfig,
-		p.protocolConfigs.BaseFeeConfig(),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch transaction pool content: %w", err)
@@ -262,15 +259,16 @@ func (p *Proposer) fetchPoolContent(allowEmptyPoolContent bool) ([]types.Transac
 // from L2 execution engine's tx pool, splitting them by proposing constraints,
 // and then proposing them to TaikoInbox contract.
 func (p *Proposer) ProposeOp(ctx context.Context) error {
+	// TODO: HANDLE PRECONF ROUTER
 	// Check if the preconfirmation router is set, if so, skip proposing.
-	preconfRouter, err := p.rpc.GetPreconfRouterPacaya(&bind.CallOpts{Context: ctx})
-	if err != nil {
-		return fmt.Errorf("failed to fetch preconfirmation router: %w", err)
-	}
-	if preconfRouter != rpc.ZeroAddress {
-		log.Info("Preconfirmation router is set, skip proposing", "address", preconfRouter, "time", time.Now())
-		return nil
-	}
+	// preconfRouter, err := p.rpc.GetPreconfRouterPacaya(&bind.CallOpts{Context: ctx})
+	// if err != nil {
+	// 	return fmt.Errorf("failed to fetch preconfirmation router: %w", err)
+	// }
+	// if preconfRouter != rpc.ZeroAddress {
+	// 	log.Info("Preconfirmation router is set, skip proposing", "address", preconfRouter, "time", time.Now())
+	// 	return nil
+	// }
 
 	// Wait until L2 execution engine is synced at first.
 	if err := p.rpc.WaitTillL2ExecutionEngineSynced(ctx); err != nil {
@@ -293,12 +291,16 @@ func (p *Proposer) ProposeOp(ctx context.Context) error {
 		return fmt.Errorf("failed to get L2 chain head number: %w", err)
 	}
 
+	// TODO: GET PARENT META HASH FROM CONTRACT
+
 	// Fetch the parent meta hash of current the L2 head, which will be used
 	// by revert protection.
-	parentMetaHash, err := p.GetParentMetaHash(ctx, l2Head)
-	if err != nil {
-		return fmt.Errorf("failed to get parent meta hash: %w", err)
-	}
+	// parentMetaHash, err := p.GetParentMetaHash(ctx, l2Head)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to get parent meta hash: %w", err)
+	// }
+
+	var parentMetaHash = common.Hash{}
 
 	// Fetch pending L2 transactions from mempool.
 	txLists, err := p.fetchPoolContent(allowEmptyPoolContent)
@@ -358,7 +360,7 @@ func (p *Proposer) ProposeTxListPacaya(
 		ctx,
 		p.rpc,
 		proposerAddress,
-		p.NewTaikoInboxAddress,
+		p.TaikoInboxAddress,
 		new(big.Int).Add(
 			p.protocolConfigs.LivenessBond(),
 			new(big.Int).Mul(
@@ -377,27 +379,30 @@ func (p *Proposer) ProposeTxListPacaya(
 		return fmt.Errorf("insufficient proposer (%s) balance", proposerAddress.Hex())
 	}
 
-	forcedInclusion, minTxsPerForcedInclusion, err := p.rpc.GetForcedInclusionPacaya(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to fetch forced inclusion: %w", err)
-	}
+	// TODO: HANDLE FORCED INCLUSION
+	// forcedInclusion, minTxsPerForcedInclusion, err := p.rpc.GetForcedInclusionPacaya(ctx)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to fetch forced inclusion: %w", err)
+	// }
+	//
+	// if forcedInclusion == nil {
+	// 	log.Info("No forced inclusion", "proposer", proposerAddress.Hex())
+	// } else {
+	// 	log.Info(
+	// 		"Forced inclusion",
+	// 		"proposer", proposerAddress.Hex(),
+	// 		"blobHash", common.BytesToHash(forcedInclusion.BlobHash[:]),
+	// 		"feeInGwei", forcedInclusion.FeeInGwei,
+	// 		"createdAtBatchId", forcedInclusion.CreatedAtBatchId,
+	// 		"blobByteOffset", forcedInclusion.BlobByteOffset,
+	// 		"blobByteSize", forcedInclusion.BlobByteSize,
+	// 		"minTxsPerForcedInclusion", minTxsPerForcedInclusion,
+	// 	)
+	// }
 
-	if forcedInclusion == nil {
-		log.Info("No forced inclusion", "proposer", proposerAddress.Hex())
-	} else {
-		log.Info(
-			"Forced inclusion",
-			"proposer", proposerAddress.Hex(),
-			"blobHash", common.BytesToHash(forcedInclusion.BlobHash[:]),
-			"feeInGwei", forcedInclusion.FeeInGwei,
-			"createdAtBatchId", forcedInclusion.CreatedAtBatchId,
-			"blobByteOffset", forcedInclusion.BlobByteOffset,
-			"blobByteSize", forcedInclusion.BlobByteSize,
-			"minTxsPerForcedInclusion", minTxsPerForcedInclusion,
-		)
-	}
+	// txCandidate, err := p.txBuilder.BuildPacaya(ctx, txBatch, forcedInclusion, minTxsPerForcedInclusion, parentMetaHash)
 
-	txCandidate, err := p.txBuilder.BuildPacaya(ctx, txBatch, forcedInclusion, minTxsPerForcedInclusion, parentMetaHash)
+	txCandidate, err := p.txBuilder.BuildPacaya(ctx, txBatch, parentMetaHash)
 	if err != nil {
 		log.Warn("Failed to build TaikoInbox.proposeBatch transaction", "error", encoding.TryParsingCustomError(err))
 		return err
@@ -470,17 +475,18 @@ func (p *Proposer) RegisterTxMgrSelectorToBlobServer(blobServer *testutils.Memor
 	)
 }
 
+// TODO: GET PARENT META HASH FROM CONTRACT
 // GetParentMetaHash returns the parent meta hash of the given L2 head.
-func (p *Proposer) GetParentMetaHash(ctx context.Context, l2Head uint64) (common.Hash, error) {
-	state, err := p.rpc.GetProtocolStateVariablesPacaya(&bind.CallOpts{Context: ctx})
-	if err != nil {
-		return common.Hash{}, fmt.Errorf("failed to fetch protocol state variables: %w", err)
-	}
-
-	batch, err := p.rpc.GetBatchByID(ctx, new(big.Int).SetUint64(state.Stats2.NumBatches-1))
-	if err != nil {
-		return common.Hash{}, fmt.Errorf("failed to fetch batch by ID: %w", err)
-	}
-
-	return batch.MetaHash, nil
-}
+// func (p *Proposer) GetParentMetaHash(ctx context.Context, l2Head uint64) (common.Hash, error) {
+// 	state, err := p.rpc.GetProtocolStateVariablesPacaya(&bind.CallOpts{Context: ctx})
+// 	if err != nil {
+// 		return common.Hash{}, fmt.Errorf("failed to fetch protocol state variables: %w", err)
+// 	}
+//
+// 	publicationHash, err := p.rpc.GetPublicationById(ctx, new(big.Int).SetUint64(state.Stats2.NumBatches-1))
+// 	if err != nil {
+// 		return common.Hash{}, fmt.Errorf("failed to fetch batch by ID: %w", err)
+// 	}
+//
+// 	return *publicationHash, nil
+// }

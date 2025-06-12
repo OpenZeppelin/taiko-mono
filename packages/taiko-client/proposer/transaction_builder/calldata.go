@@ -3,7 +3,7 @@ package builder
 import (
 	"context"
 	"crypto/ecdsa"
-	"math/big"
+	// "math/big"
 
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 	"github.com/ethereum/go-ethereum/common"
@@ -56,12 +56,13 @@ func NewCalldataTransactionBuilder(
 	}
 }
 
+// TODO: Add forced inclusion
 // BuildPacaya implements the ProposeBlocksTransactionBuilder interface.
 func (b *CalldataTransactionBuilder) BuildPacaya(
 	ctx context.Context,
 	txBatch []types.Transactions,
-	forcedInclusion *pacayaBindings.IForcedInclusionStoreForcedInclusion,
-	minTxsPerForcedInclusion *big.Int,
+	// forcedInclusion *pacayaBindings.IForcedInclusionStoreForcedInclusion,
+	// minTxsPerForcedInclusion *big.Int,
 	parentMetahash common.Hash,
 ) (*txmgr.TxCandidate, error) {
 	// ABI encode the TaikoWrapper.proposeBatch / ProverSet.proposeBatch parameters.
@@ -80,16 +81,16 @@ func (b *CalldataTransactionBuilder) BuildPacaya(
 		proposer = b.proverSetAddress
 	}
 
-	if forcedInclusion != nil {
-		blobParams, blockParams := buildParamsForForcedInclusion(forcedInclusion, minTxsPerForcedInclusion)
-		forcedInclusionParams = &encoding.BatchParams{
-			Proposer:                 proposer,
-			Coinbase:                 b.l2SuggestedFeeRecipient,
-			RevertIfNotFirstProposal: b.revertProtectionEnabled,
-			BlobParams:               *blobParams,
-			Blocks:                   blockParams,
-		}
-	}
+	// if forcedInclusion != nil {
+	// blobParams, blockParams := buildParamsForForcedInclusion(forcedInclusion, minTxsPerForcedInclusion)
+	// forcedInclusionParams = &encoding.BatchParams{
+	// 	Proposer:                 proposer,
+	// 	Coinbase:                 b.l2SuggestedFeeRecipient,
+	// 	RevertIfNotFirstProposal: b.revertProtectionEnabled,
+	// 	BlobParams:               *blobParams,
+	// 	Blocks:                   blockParams,
+	// }
+	// }
 
 	for _, txs := range txBatch {
 		allTxs = append(allTxs, txs...)

@@ -3,7 +3,7 @@ package builder
 import (
 	"context"
 	"crypto/ecdsa"
-	"math/big"
+	// "math/big"
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
@@ -57,24 +57,26 @@ func NewBlobTransactionBuilder(
 	}
 }
 
+// TODO: Add forced inclusion
+
 // BuildPacaya implements the ProposeBlocksTransactionBuilder interface.
 func (b *BlobTransactionBuilder) BuildPacaya(
 	ctx context.Context,
 	txBatch []types.Transactions,
-	forcedInclusion *pacayaBindings.IForcedInclusionStoreForcedInclusion,
-	minTxsPerForcedInclusion *big.Int,
+	// forcedInclusion *pacayaBindings.IForcedInclusionStoreForcedInclusion,
+	// minTxsPerForcedInclusion *big.Int,
 	parentMetahash common.Hash,
 ) (*txmgr.TxCandidate, error) {
 	// ABI encode the TaikoWrapper.proposeBatch / ProverSet.proposeBatch parameters.
 	var (
-		to                    = &b.taikoWrapperAddress
-		proposer              = crypto.PubkeyToAddress(b.proposerPrivateKey.PublicKey)
-		data                  []byte
-		blobs                 []*eth.Blob
-		encodedParams         []byte
-		blockParams           []pacayaBindings.ITaikoInboxBlockParams
-		forcedInclusionParams *encoding.BatchParams
-		allTxs                types.Transactions
+		to            = &b.taikoWrapperAddress
+		proposer      = crypto.PubkeyToAddress(b.proposerPrivateKey.PublicKey)
+		data          []byte
+		blobs         []*eth.Blob
+		encodedParams []byte
+		blockParams   []pacayaBindings.ITaikoInboxBlockParams
+		// forcedInclusionParams *encoding.BatchParams
+		allTxs types.Transactions
 	)
 
 	if b.proverSetAddress != rpc.ZeroAddress {
@@ -82,16 +84,16 @@ func (b *BlobTransactionBuilder) BuildPacaya(
 		proposer = b.proverSetAddress
 	}
 
-	if forcedInclusion != nil {
-		blobParams, blockParams := buildParamsForForcedInclusion(forcedInclusion, minTxsPerForcedInclusion)
-		forcedInclusionParams = &encoding.BatchParams{
-			Proposer:                 proposer,
-			Coinbase:                 b.l2SuggestedFeeRecipient,
-			RevertIfNotFirstProposal: b.revertProtectionEnabled,
-			BlobParams:               *blobParams,
-			Blocks:                   blockParams,
-		}
-	}
+	// if forcedInclusion != nil {
+	// 	blobParams, blockParams := buildParamsForForcedInclusion(forcedInclusion, minTxsPerForcedInclusion)
+	// 	forcedInclusionParams = &encoding.BatchParams{
+	// 		Proposer:                 proposer,
+	// 		Coinbase:                 b.l2SuggestedFeeRecipient,
+	// 		RevertIfNotFirstProposal: b.revertProtectionEnabled,
+	// 		BlobParams:               *blobParams,
+	// 		Blocks:                   blockParams,
+	// 	}
+	// }
 
 	for _, txs := range txBatch {
 		allTxs = append(allTxs, txs...)
@@ -126,16 +128,16 @@ func (b *BlobTransactionBuilder) BuildPacaya(
 	}
 
 	if b.revertProtectionEnabled {
-		if forcedInclusionParams != nil {
-			forcedInclusionParams.ParentMetaHash = parentMetahash
-		} else {
-			params.ParentMetaHash = parentMetahash
-		}
+		// if forcedInclusionParams != nil {
+		// 	forcedInclusionParams.ParentMetaHash = parentMetahash
+		// } else {
+		params.ParentMetaHash = parentMetahash
+		// }
 	}
 
-	if encodedParams, err = encoding.EncodeBatchParamsWithForcedInclusion(forcedInclusionParams, params); err != nil {
-		return nil, err
-	}
+	// if encodedParams, err = encoding.EncodeBatchParamsWithForcedInclusion(forcedInclusionParams, params); err != nil {
+	// 	return nil, err
+	// }
 
 	if b.proverSetAddress != rpc.ZeroAddress {
 		if data, err = encoding.ProverSetPacayaABI.Pack("proposeBatch", encodedParams, []byte{}); err != nil {

@@ -8,8 +8,11 @@ import (
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
 
+	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/minimal"
 	pacayaBindings "github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/pacaya"
 )
+
+// TODO: ADD ALL SUSBSCRIPTIONS FOR TAIKO INBOX
 
 // SubscribeEvent creates a event subscription, will retry if the established subscription failed.
 func SubscribeEvent(
@@ -28,8 +31,26 @@ func SubscribeEvent(
 	)
 }
 
+func SubscribePublishedAlethia(
+	taikoInbox *minimal.IInboxFilterer,
+	ch chan *minimal.IInboxPublished,
+	pubHash [][32]byte,
+) event.Subscription {
+	return SubscribeEvent("Published", func(ctx context.Context) (event.Subscription, error) {
+		sub, err := taikoInbox.WatchPublished(nil, ch, pubHash)
+		if err != nil {
+			log.Error("Create TaikoInbox.Published subscription error", "error", err)
+			return nil, err
+		}
+
+		defer sub.Unsubscribe()
+
+		return waitSubErr(ctx, sub)
+	})
+}
+
 // SubscribeBatchesVerifiedPacaya subscribes the Pacaya protocol's BatchesVerified events.
-func SubscribeBatchesVerifiedPacaya(
+func SubscribeCheckpointVerifiedPacaya(
 	taikoInbox *pacayaBindings.TaikoInboxClient,
 	ch chan *pacayaBindings.TaikoInboxClientBatchesVerified,
 ) event.Subscription {
@@ -46,33 +67,16 @@ func SubscribeBatchesVerifiedPacaya(
 	})
 }
 
-// SubscribeBatchProposedPacaya subscribes the Pacaya protocol's BatchProposed events.
-func SubscribeBatchProposedPacaya(
-	taikoInbox *pacayaBindings.TaikoInboxClient,
-	ch chan *pacayaBindings.TaikoInboxClientBatchProposed,
-) event.Subscription {
-	return SubscribeEvent("BatchProposed", func(ctx context.Context) (event.Subscription, error) {
-		sub, err := taikoInbox.WatchBatchProposed(nil, ch)
-		if err != nil {
-			log.Error("Create TaikoInbox.BatchProposed subscription error", "error", err)
-			return nil, err
-		}
-
-		defer sub.Unsubscribe()
-
-		return waitSubErr(ctx, sub)
-	})
-}
-
-// SubscribeBatchesProvedPacaya subscribes the Pacaya protocol's BatchesProved events.
-// func SubscribeBatchesProvedPacaya(
+//
+// // SubscribeBatchProposedPacaya subscribes the Pacaya protocol's BatchProposed events.
+// func SubscribeBatchProposedPacaya(
 // 	taikoInbox *pacayaBindings.TaikoInboxClient,
-// 	ch chan *pacayaBindings.TaikoInboxClientBatchesProved,
+// 	ch chan *pacayaBindings.TaikoInboxClientBatchProposed,
 // ) event.Subscription {
-// 	return SubscribeEvent("BatchesProved", func(ctx context.Context) (event.Subscription, error) {
-// 		sub, err := taikoInbox.WatchBatchesProved(nil, ch)
+// 	return SubscribeEvent("BatchProposed", func(ctx context.Context) (event.Subscription, error) {
+// 		sub, err := taikoInbox.WatchBatchProposed(nil, ch)
 // 		if err != nil {
-// 			log.Error("Create TaikoInbox.BatchesProved subscription error", "error", err)
+// 			log.Error("Create TaikoInbox.BatchProposed subscription error", "error", err)
 // 			return nil, err
 // 		}
 //
@@ -81,6 +85,24 @@ func SubscribeBatchProposedPacaya(
 // 		return waitSubErr(ctx, sub)
 // 	})
 // }
+
+// SubscribeCheckpointUpdatedAlethia subscribes the Alethia protocol's CheckpointUpdated events.
+func SubscribeCheckpointUpdatedAlethia(
+	taikoCheckpoint *minimal.ICheckpointTracker,
+	ch chan *minimal.ICheckpointTrackerCheckpointUpdated,
+) event.Subscription {
+	return SubscribeEvent("CheckpointUpdated", func(ctx context.Context) (event.Subscription, error) {
+		sub, err := taikoCheckpoint.WatchCheckpointUpdated(nil, ch)
+		if err != nil {
+			log.Error("Create CheckpointTracker.CheckpointUpdated subscription error", "error", err)
+			return nil, err
+		}
+
+		defer sub.Unsubscribe()
+
+		return waitSubErr(ctx, sub)
+	})
+}
 
 // SubscribeChainHead subscribes the new chain heads.
 func SubscribeChainHead(

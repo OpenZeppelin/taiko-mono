@@ -127,9 +127,9 @@ func (s *L2ChainSyncer) SetUpEventSync() error {
 	)
 
 	// Reset the L1Current cursor.
-	if err := s.state.ResetL1Current(s.ctx, l2Head.Number); err != nil {
-		return fmt.Errorf("failed to reset L1 current cursor: %w", err)
-	}
+	// if err := s.state.ResetL1Current(s.ctx, l2Head.Number); err != nil {
+	// 	return fmt.Errorf("failed to reset L1 current cursor: %w", err)
+	// }
 
 	// Reset to the latest L2 execution engine's chain status.
 	s.progressTracker.UpdateMeta(l2Head.Number, l2Head.Hash())

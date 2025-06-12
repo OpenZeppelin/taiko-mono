@@ -139,9 +139,8 @@ func (s *Syncer) processL1Blocks(ctx context.Context) error {
 
 	log.Info("Creating PublishedIterator")
 	iter, err := eventIterator.NewPublishedIterator(ctx, &eventIterator.PublishedIteratorConfig{
-		Client:        s.rpc.L1,
-		NewTaikoInbox: s.rpc.MinimalRollupClients.Inbox,
-		//PacayaForkHeight:     s.rpc.PacayaClients.ForkHeights.Pacaya,
+		Client:           s.rpc.L1,
+		TaikoInbox:       s.rpc.MinimalRollupClients.Inbox,
 		StartHeight:      s.state.GetL1Current().Number,
 		EndHeight:        l1End.Number,
 		OnPublishedEvent: s.onPublished,

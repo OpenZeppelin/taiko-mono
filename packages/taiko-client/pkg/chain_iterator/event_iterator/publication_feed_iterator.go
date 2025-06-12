@@ -18,7 +18,7 @@ import (
 // EndPublishedEventIterFunc ends the current iteration.
 type EndPublishedEventIterFunc func()
 
-// OnPublishedEvent represents the callback function which will be called when a NewTaikoInbox.Published event is
+// OnPublishedEvent represents the callback function which will be called when a TaikoInbox.Published event is
 // iterated.
 type OnPublishedEvent func(
 	context.Context,
@@ -26,11 +26,11 @@ type OnPublishedEvent func(
 	EndPublishedEventIterFunc,
 ) error
 
-// PublishedIterator iterates the emitted NewTaikoInbox.Published events in the chain,
+// PublishedIterator iterates the emitted TaikoInbox.Published events in the chain,
 // with the awareness of reorganization.
 type PublishedIterator struct {
 	ctx                context.Context
-	publicationFeed    *minimalBindings.IInbox
+	inbox              *minimalBindings.IInbox
 	blockBatchIterator *chainIterator.BlockBatchIterator
 	isEnd              bool
 }
@@ -38,7 +38,7 @@ type PublishedIterator struct {
 // PublishedIteratorConfig represents the configs of a Published event iterator.
 type PublishedIteratorConfig struct {
 	Client                *rpc.EthClient
-	NewTaikoInbox         *minimalBindings.IInbox
+	TaikoInbox            *minimalBindings.IInbox
 	MaxBlocksReadPerEpoch *uint64
 	StartHeight           *big.Int
 	EndHeight             *big.Int
@@ -52,7 +52,7 @@ func NewPublishedIterator(ctx context.Context, cfg *PublishedIteratorConfig) (*P
 		return nil, errors.New("invalid callback")
 	}
 
-	iterator := &PublishedIterator{ctx: ctx, publicationFeed: cfg.NewTaikoInbox}
+	iterator := &PublishedIterator{ctx: ctx, inbox: cfg.TaikoInbox}
 
 	// Initialize the inner block iterator.
 	blockIterator, err := chainIterator.NewBlockBatchIterator(ctx, &chainIterator.BlockBatchIteratorConfig{
@@ -63,7 +63,7 @@ func NewPublishedIterator(ctx context.Context, cfg *PublishedIteratorConfig) (*P
 		BlockConfirmations:    cfg.BlockConfirmations,
 		OnBlocks: assemblePublishedIteratorCallback(
 			cfg.Client,
-			cfg.NewTaikoInbox,
+			cfg.TaikoInbox,
 			cfg.OnPublishedEvent,
 			iterator,
 		),
@@ -168,4 +168,3 @@ func assemblePublishedIteratorCallback(
 		return nil
 	}
 }
-
