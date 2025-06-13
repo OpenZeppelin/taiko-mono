@@ -92,7 +92,7 @@ func (i *PublishedIterator) end() {
 // by a event iterator's inner block iterator.
 func assemblePublishedIteratorCallback(
 	client *rpc.EthClient,
-	publicationFeed *minimalBindings.IInbox,
+	taikoInbox *minimalBindings.IInbox,
 	callback OnPublishedEvent,
 	eventIter *PublishedIterator,
 ) chainIterator.OnBlocksFunc {
@@ -108,10 +108,11 @@ func assemblePublishedIteratorCallback(
 		)
 
 		// Iterate the Published events.
-		iter, err := publicationFeed.FilterPublished(
+		iter, err := taikoInbox.FilterPublished(
 			&bind.FilterOpts{Start: start.Number.Uint64(), End: &endHeight, Context: ctx},
 			nil, // pubHash indexed param (we're not filtering by it)
 		)
+
 		if err != nil {
 			return err
 		}

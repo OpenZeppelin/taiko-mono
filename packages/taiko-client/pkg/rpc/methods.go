@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -16,6 +17,7 @@ import (
 	"github.com/ethereum/go-ethereum/miner"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/encoding"
 	pacayaBindings "github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/pacaya"
 
 	"github.com/cenkalti/backoff/v4"
@@ -312,7 +314,7 @@ func (c *Client) GetPublicationById(ctx context.Context, publicationID *big.Int)
 	ctxWithTimeout, cancel := CtxWithTimeoutOrDefault(ctx, defaultTimeout)
 	defer cancel()
 
-	publicationHash, err := c.MinimalRollupClients.Inbox.GetPublicationHash(&bind.CallOpts{Context: ctxWithTimeout}, publicationID)
+	publicationHash, err := c.MinimalRollupClients.TaikoInbox.GetPublicationHash(&bind.CallOpts{Context: ctxWithTimeout}, publicationID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch batch by ID: %w", err)
 	}
@@ -620,264 +622,263 @@ func (c *Client) L2ExecutionEngineSyncProgress(ctx context.Context) (*L2SyncProg
 // 	return &t, nil
 // }
 
-// // ReorgCheckResult represents the information about whether the L1 block has been reorged
-// // and how to reset the L1 cursor.
+// ReorgCheckResult represents the information about whether the L1 block has been reorged
+// and how to reset the L1 cursor.
+
+type ReorgCheckResult struct {
+	IsReorged                 bool
+	L1CurrentToReset          *types.Header
+	LastHandledBlockIDToReset *big.Int
+}
+
+// CheckL1Reorg checks whether the L2 block's corresponding L1 block has been reorged or not.
+// We will skip the reorg check if:
+//  1. When the L2 chain has just finished a P2P sync, so there is no L1Origin information recorded in
+//     its local database, and we assume the last verified L2 block is old enough, so its corresponding
+//     L1 block should have also been finalized.
 //
-//	type ReorgCheckResult struct {
-//		IsReorged                 bool
-//		L1CurrentToReset          *types.Header
-//		LastHandledBlockIDToReset *big.Int
-//	}
+// Then we will check:
+// 1. If the L2 block's corresponding L1 block which in L1Origin has been reorged
+// 2. If the L1 information which in the given L2 block's anchor transaction has been reorged
 //
-// // CheckL1Reorg checks whether the L2 block's corresponding L1 block has been reorged or not.
-// // We will skip the reorg check if:
-// //  1. When the L2 chain has just finished a P2P sync, so there is no L1Origin information recorded in
-// //     its local database, and we assume the last verified L2 block is old enough, so its corresponding
-// //     L1 block should have also been finalized.
-// //
-// // Then we will check:
-// // 1. If the L2 block's corresponding L1 block which in L1Origin has been reorged
-// // 2. If the L1 information which in the given L2 block's anchor transaction has been reorged
-// //
-// // And if a reorg is detected, we return a new L1 block cursor which need to reset to.
-//
-//	func (c *Client) CheckL1Reorg(ctx context.Context, blockID *big.Int) (*ReorgCheckResult, error) {
-//		var (
-//			result                 = new(ReorgCheckResult)
-//			ctxWithTimeout, cancel = CtxWithTimeoutOrDefault(ctx, defaultTimeout)
-//		)
-//		defer cancel()
-//
-//		// blockID is zero already, no need to check reorg.
-//		if blockID.Cmp(common.Big0) == 0 {
-//			return result, nil
-//		}
-//
-//		for {
-//			// If we rollback to the genesis block, then there is no L1Origin information recorded in the L2 execution
-//			// engine for that block, so we will query the protocol to use `GenesisHeight` value to reset the L1 cursor.
-//			if blockID.Cmp(common.Big0) == 0 {
-//				genesisHeight, err := c.getGenesisHeight(ctxWithTimeout)
-//				if err != nil {
-//					return nil, err
-//				}
-//
-//				result.IsReorged = true
-//				if result.L1CurrentToReset, err = c.L1.HeaderByNumber(ctxWithTimeout, genesisHeight); err != nil {
-//					return nil, err
-//				}
-//
-//				return result, nil
-//			}
-//
-//			// 1. Check whether the L2 block's corresponding L1 block which in L1Origin has been reorged.
-//			l1Origin, err := c.L2.L1OriginByID(ctxWithTimeout, blockID)
-//			if err != nil {
-//				// If the L2 EE is just synced through P2P, so there is no L1Origin information recorded in
-//				// its local database, we skip this check.
-//				if err.Error() == ethereum.NotFound.Error() {
-//					log.Info("L1Origin not found, the L2 execution engine has just synced from P2P network", "blockID", blockID)
-//					return result, nil
-//				}
-//
-//				return nil, err
-//			}
-//
-//			// Compare the L1 header hash in the L1Origin with the current L1 header hash in the L1 chain.
-//			l1Header, err := c.L1.HeaderByNumber(ctxWithTimeout, l1Origin.L1BlockHeight)
-//			if err != nil {
-//				// We can not find the L1 header which in the L1Origin, which means that L1 block has been reorged.
-//				if err.Error() == ethereum.NotFound.Error() {
-//					result.IsReorged = true
-//					blockID = new(big.Int).Sub(blockID, common.Big1)
-//					continue
-//				}
-//				return nil, fmt.Errorf("failed to fetch L1 header (%d): %w", l1Origin.L1BlockHeight, err)
-//			}
-//
-//			if l1Header.Hash() != l1Origin.L1BlockHash {
-//				log.Info(
-//					"Reorg detected",
-//					"blockID", blockID,
-//					"l1Height", l1Origin.L1BlockHeight,
-//					"l1HashOld", l1Origin.L1BlockHash,
-//					"l1HashNew", l1Header.Hash(),
-//				)
-//				blockID = new(big.Int).Sub(blockID, common.Big1)
-//				result.IsReorged = true
-//				continue
-//			}
-//
-//			// 2. Check whether the L1 information which in the given L2 block's anchor transaction has been reorged.
-//			isSyncedL1SnippetInvalid, err := c.checkSyncedL1SnippetFromAnchor(
-//				ctxWithTimeout,
-//				blockID,
-//				l1Origin.L1BlockHeight.Uint64(),
-//			)
-//			if err != nil {
-//				return nil, fmt.Errorf("failed to check L1 reorg from anchor transaction: %w", err)
-//			}
-//			if isSyncedL1SnippetInvalid {
-//				blockID = new(big.Int).Sub(blockID, common.Big1)
-//				result.IsReorged = true
-//				continue
-//			}
-//
-//			result.L1CurrentToReset = l1Header
-//			result.LastHandledBlockIDToReset = l1Origin.BlockID
-//			break
-//		}
-//
-//		log.Debug(
-//			"Check L1 reorg",
-//			"isReorged", result.IsReorged,
-//			"l1CurrentToResetNumber", result.L1CurrentToReset.Number,
-//			"l1CurrentToResetHash", result.L1CurrentToReset.Hash(),
-//			"blockIDToReset", result.LastHandledBlockIDToReset,
-//		)
-//
-//		return result, nil
-//	}
-//
+// And if a reorg is detected, we return a new L1 block cursor which need to reset to.
+func (c *Client) CheckL1Reorg(ctx context.Context, blockID *big.Int) (*ReorgCheckResult, error) {
+	var (
+		result                 = new(ReorgCheckResult)
+		ctxWithTimeout, cancel = CtxWithTimeoutOrDefault(ctx, defaultTimeout)
+	)
+	defer cancel()
+
+	// blockID is zero already, no need to check reorg.
+	if blockID.Cmp(common.Big0) == 0 {
+		return result, nil
+	}
+
+	for {
+		// If we rollback to the genesis block, then there is no L1Origin information recorded in the L2 execution
+		// engine for that block, so we will query the protocol to use `GenesisHeight` value to reset the L1 cursor.
+		if blockID.Cmp(common.Big0) == 0 {
+			genesisHeight, err := c.getGenesisHeight(ctxWithTimeout)
+			if err != nil {
+				return nil, err
+			}
+
+			result.IsReorged = true
+			if result.L1CurrentToReset, err = c.L1.HeaderByNumber(ctxWithTimeout, genesisHeight); err != nil {
+				return nil, err
+			}
+
+			return result, nil
+		}
+
+		// 1. Check whether the L2 block's corresponding L1 block which in L1Origin has been reorged.
+		l1Origin, err := c.L2.L1OriginByID(ctxWithTimeout, blockID)
+		if err != nil {
+			// If the L2 EE is just synced through P2P, so there is no L1Origin information recorded in
+			// its local database, we skip this check.
+			if err.Error() == ethereum.NotFound.Error() {
+				log.Info("L1Origin not found, the L2 execution engine has just synced from P2P network", "blockID", blockID)
+				return result, nil
+			}
+
+			return nil, err
+		}
+
+		// Compare the L1 header hash in the L1Origin with the current L1 header hash in the L1 chain.
+		l1Header, err := c.L1.HeaderByNumber(ctxWithTimeout, l1Origin.L1BlockHeight)
+		if err != nil {
+			// We can not find the L1 header which in the L1Origin, which means that L1 block has been reorged.
+			if err.Error() == ethereum.NotFound.Error() {
+				result.IsReorged = true
+				blockID = new(big.Int).Sub(blockID, common.Big1)
+				continue
+			}
+			return nil, fmt.Errorf("failed to fetch L1 header (%d): %w", l1Origin.L1BlockHeight, err)
+		}
+
+		if l1Header.Hash() != l1Origin.L1BlockHash {
+			log.Info(
+				"Reorg detected",
+				"blockID", blockID,
+				"l1Height", l1Origin.L1BlockHeight,
+				"l1HashOld", l1Origin.L1BlockHash,
+				"l1HashNew", l1Header.Hash(),
+			)
+			blockID = new(big.Int).Sub(blockID, common.Big1)
+			result.IsReorged = true
+			continue
+		}
+
+		// 2. Check whether the L1 information which in the given L2 block's anchor transaction has been reorged.
+		isSyncedL1SnippetInvalid, err := c.checkSyncedL1SnippetFromAnchor(
+			ctxWithTimeout,
+			blockID,
+			l1Origin.L1BlockHeight.Uint64(),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check L1 reorg from anchor transaction: %w", err)
+		}
+		if isSyncedL1SnippetInvalid {
+			blockID = new(big.Int).Sub(blockID, common.Big1)
+			result.IsReorged = true
+			continue
+		}
+
+		result.L1CurrentToReset = l1Header
+		result.LastHandledBlockIDToReset = l1Origin.BlockID
+		break
+	}
+
+	log.Debug(
+		"Check L1 reorg",
+		"isReorged", result.IsReorged,
+		"l1CurrentToResetNumber", result.L1CurrentToReset.Number,
+		"l1CurrentToResetHash", result.L1CurrentToReset.Hash(),
+		"blockIDToReset", result.LastHandledBlockIDToReset,
+	)
+
+	return result, nil
+}
+
 // // checkSyncedL1SnippetFromAnchor checks whether the L1 snippet synced from the anchor transaction is valid.
-// func (c *Client) checkSyncedL1SnippetFromAnchor(
-//
-//	ctx context.Context,
-//	blockID *big.Int,
-//	l1Height uint64,
-//
-//	) (bool, error) {
-//		log.Debug("Check synced L1 snippet from anchor", "blockID", blockID, "l1Height", l1Height)
-//		block, err := c.L2.BlockByNumber(ctx, blockID)
-//		if err != nil {
-//			log.Error("Failed to fetch L2 block", "blockID", blockID, "error", err)
-//			return false, err
-//		}
-//		parent, err := c.L2.BlockByHash(ctx, block.ParentHash())
-//		if err != nil {
-//			log.Error("Failed to fetch L2 parent block", "blockID", blockID, "parentHash", block.ParentHash(), "error", err)
-//			return false, err
-//		}
-//
-//		l1StateRoot, l1HeightInAnchor, parentGasUsed, err := c.getSyncedL1SnippetFromAnchor(
-//			block.Transactions()[0],
-//		)
-//		if err != nil {
-//			log.Error("Failed to parse L1 snippet from anchor transaction", "blockID", blockID, "error", err)
-//			return false, err
-//		}
-//
-//		if parentGasUsed != uint32(parent.GasUsed()) {
-//			log.Info(
-//				"Reorg detected due to parent gas used mismatch",
-//				"blockID", blockID,
-//				"parentGasUsedInAnchor", parentGasUsed,
-//				"parentGasUsed", parent.GasUsed(),
-//			)
-//			return true, nil
-//		}
-//
-//		l1Header, err := c.L1.HeaderByNumber(ctx, new(big.Int).SetUint64(l1HeightInAnchor))
-//		if err != nil {
-//			log.Error("Failed to fetch L1 header", "blockID", blockID, "error", err)
-//			return false, err
-//		}
-//
-//		if l1Header.Root != l1StateRoot {
-//			log.Info(
-//				"Reorg detected due to L1 state root mismatch",
-//				"blockID", blockID,
-//				"l1StateRootInAnchor", l1StateRoot,
-//				"l1StateRoot", l1Header.Root,
-//			)
-//			return true, nil
-//		}
-//
-//		return false, nil
-//	}
-//
-// // getSyncedL1SnippetFromAnchor parses the anchor transaction calldata, and returns the synced L1 snippet,
-// func (c *Client) getSyncedL1SnippetFromAnchor(tx *types.Transaction) (
-//
-//	l1StateRoot common.Hash,
-//	l1Height uint64,
-//	parentGasUsed uint32,
-//	err error,
-//
-//	) {
-//		var method *abi.Method
-//		if method, err = encoding.TaikoAnchorABI.MethodById(tx.Data()); err != nil {
-//			return common.Hash{}, 0, 0, fmt.Errorf("failed to get TaikoAnchor.AnchorV3 method by ID: %w", err)
-//		}
-//
-//		var ok bool
-//		switch method.Name {
-//		case "anchor":
-//			args := map[string]interface{}{}
-//
-//			if err := method.Inputs.UnpackIntoMap(args, tx.Data()[4:]); err != nil {
-//				return common.Hash{}, 0, 0, fmt.Errorf("failed to unpack anchor transaction calldata: %w", err)
-//			}
-//
-//			l1StateRoot, ok = args["_l1StateRoot"].([32]byte)
-//			if !ok {
-//				return common.Hash{},
-//					0,
-//					0,
-//					errors.New("failed to parse l1StateRoot from anchor transaction calldata")
-//			}
-//			l1Height, ok = args["_l1BlockId"].(uint64)
-//			if !ok {
-//				return common.Hash{},
-//					0,
-//					0,
-//					errors.New("failed to parse l1Height from anchor transaction calldata")
-//			}
-//			parentGasUsed, ok = args["_parentGasUsed"].(uint32)
-//			if !ok {
-//				return common.Hash{},
-//					0,
-//					0,
-//					errors.New("failed to parse parentGasUsed from anchor transaction calldata")
-//			}
-//		case "anchorV2", "anchorV3":
-//			args := map[string]interface{}{}
-//
-//			if err := method.Inputs.UnpackIntoMap(args, tx.Data()[4:]); err != nil {
-//				return common.Hash{}, 0, 0, err
-//			}
-//
-//			l1Height, ok = args["_anchorBlockId"].(uint64)
-//			if !ok {
-//				return common.Hash{},
-//					0,
-//					0,
-//					errors.New("failed to parse anchorBlockId from anchorV2 / anchorV3 transaction calldata")
-//			}
-//			l1StateRoot, ok = args["_anchorStateRoot"].([32]byte)
-//			if !ok {
-//				return common.Hash{},
-//					0,
-//					0,
-//					errors.New("failed to parse anchorStateRoot from anchorV2 / anchorV3 transaction calldata")
-//			}
-//			parentGasUsed, ok = args["_parentGasUsed"].(uint32)
-//			if !ok {
-//				return common.Hash{},
-//					0,
-//					0,
-//					errors.New("failed to parse parentGasUsed from anchorV2 / anchorV3 transaction calldata")
-//			}
-//		default:
-//			return common.Hash{}, 0, 0, fmt.Errorf(
-//				"invalid method name for anchor / anchorV2 / anchorV3 transaction: %s",
-//				method.Name,
-//			)
-//		}
-//
-//		return l1StateRoot, l1Height, parentGasUsed, nil
-//	}
-//
+func (c *Client) checkSyncedL1SnippetFromAnchor(
+
+	ctx context.Context,
+	blockID *big.Int,
+	l1Height uint64,
+
+) (bool, error) {
+	log.Debug("Check synced L1 snippet from anchor", "blockID", blockID, "l1Height", l1Height)
+	block, err := c.L2.BlockByNumber(ctx, blockID)
+	if err != nil {
+		log.Error("Failed to fetch L2 block", "blockID", blockID, "error", err)
+		return false, err
+	}
+	parent, err := c.L2.BlockByHash(ctx, block.ParentHash())
+	if err != nil {
+		log.Error("Failed to fetch L2 parent block", "blockID", blockID, "parentHash", block.ParentHash(), "error", err)
+		return false, err
+	}
+
+	l1StateRoot, l1HeightInAnchor, parentGasUsed, err := c.getSyncedL1SnippetFromAnchor(
+		block.Transactions()[0],
+	)
+	if err != nil {
+		log.Error("Failed to parse L1 snippet from anchor transaction", "blockID", blockID, "error", err)
+		return false, err
+	}
+
+	if parentGasUsed != uint32(parent.GasUsed()) {
+		log.Info(
+			"Reorg detected due to parent gas used mismatch",
+			"blockID", blockID,
+			"parentGasUsedInAnchor", parentGasUsed,
+			"parentGasUsed", parent.GasUsed(),
+		)
+		return true, nil
+	}
+
+	l1Header, err := c.L1.HeaderByNumber(ctx, new(big.Int).SetUint64(l1HeightInAnchor))
+	if err != nil {
+		log.Error("Failed to fetch L1 header", "blockID", blockID, "error", err)
+		return false, err
+	}
+
+	if l1Header.Root != l1StateRoot {
+		log.Info(
+			"Reorg detected due to L1 state root mismatch",
+			"blockID", blockID,
+			"l1StateRootInAnchor", l1StateRoot,
+			"l1StateRoot", l1Header.Root,
+		)
+		return true, nil
+	}
+
+	return false, nil
+}
+
+// getSyncedL1SnippetFromAnchor parses the anchor transaction calldata, and returns the synced L1 snippet,
+func (c *Client) getSyncedL1SnippetFromAnchor(tx *types.Transaction) (
+
+	l1StateRoot common.Hash,
+	l1Height uint64,
+	parentGasUsed uint32,
+	err error,
+
+) {
+	var method *abi.Method
+	if method, err = encoding.TaikoAnchorABI.MethodById(tx.Data()); err != nil {
+		return common.Hash{}, 0, 0, fmt.Errorf("failed to get TaikoAnchor.AnchorV3 method by ID: %w", err)
+	}
+
+	var ok bool
+	switch method.Name {
+	case "anchor":
+		args := map[string]interface{}{}
+
+		if err := method.Inputs.UnpackIntoMap(args, tx.Data()[4:]); err != nil {
+			return common.Hash{}, 0, 0, fmt.Errorf("failed to unpack anchor transaction calldata: %w", err)
+		}
+
+		l1StateRoot, ok = args["_l1StateRoot"].([32]byte)
+		if !ok {
+			return common.Hash{},
+				0,
+				0,
+				errors.New("failed to parse l1StateRoot from anchor transaction calldata")
+		}
+		l1Height, ok = args["_l1BlockId"].(uint64)
+		if !ok {
+			return common.Hash{},
+				0,
+				0,
+				errors.New("failed to parse l1Height from anchor transaction calldata")
+		}
+		parentGasUsed, ok = args["_parentGasUsed"].(uint32)
+		if !ok {
+			return common.Hash{},
+				0,
+				0,
+				errors.New("failed to parse parentGasUsed from anchor transaction calldata")
+		}
+	case "anchorV2", "anchorV3":
+		args := map[string]interface{}{}
+
+		if err := method.Inputs.UnpackIntoMap(args, tx.Data()[4:]); err != nil {
+			return common.Hash{}, 0, 0, err
+		}
+
+		l1Height, ok = args["_anchorBlockId"].(uint64)
+		if !ok {
+			return common.Hash{},
+				0,
+				0,
+				errors.New("failed to parse anchorBlockId from anchorV2 / anchorV3 transaction calldata")
+		}
+		l1StateRoot, ok = args["_anchorStateRoot"].([32]byte)
+		if !ok {
+			return common.Hash{},
+				0,
+				0,
+				errors.New("failed to parse anchorStateRoot from anchorV2 / anchorV3 transaction calldata")
+		}
+		parentGasUsed, ok = args["_parentGasUsed"].(uint32)
+		if !ok {
+			return common.Hash{},
+				0,
+				0,
+				errors.New("failed to parse parentGasUsed from anchorV2 / anchorV3 transaction calldata")
+		}
+	default:
+		return common.Hash{}, 0, 0, fmt.Errorf(
+			"invalid method name for anchor / anchorV2 / anchorV3 transaction: %s",
+			method.Name,
+		)
+	}
+
+	return l1StateRoot, l1Height, parentGasUsed, nil
+}
+
 // calculateBaseFeePacaya calculates the base fee after Pacaya fork from the L2 protocol.
 func (c *Client) calculateBaseFeePacaya() (*big.Int, error) {
 	log.Info(
@@ -892,18 +893,17 @@ func (c *Client) calculateBaseFeePacaya() (*big.Int, error) {
 	return baseFee, nil
 }
 
-//
 // // getGenesisHeight fetches the genesis height from the protocol.
-// func (c *Client) getGenesisHeight(ctx context.Context) (*big.Int, error) {
-// 	stateVars, err := c.GetProtocolStateVariablesPacaya(&bind.CallOpts{Context: ctx})
-// 	if err != nil {
-// 		return nil, err
-// 	}
-//
-// 	return new(big.Int).SetUint64(stateVars.Stats1.GenesisHeight), nil
-// }
-//
-// // GetProofVerifierPacaya resolves the Pacaya proof verifier address.
+func (c *Client) getGenesisHeight(ctx context.Context) (*big.Int, error) {
+	// stateVars, err := c.GetProtocolStateVariablesPacaya(&bind.CallOpts{Context: ctx})
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	return new(big.Int).SetUint64(0), nil
+}
+
+// GetProofVerifierPacaya resolves the Pacaya proof verifier address.
 // func (c *Client) GetProofVerifierPacaya(opts *bind.CallOpts) (common.Address, error) {
 // 	var cancel context.CancelFunc
 // 	if opts == nil {

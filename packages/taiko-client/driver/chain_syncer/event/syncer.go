@@ -118,29 +118,29 @@ func (s *Syncer) processL1Blocks(ctx context.Context) error {
 	)
 	log.Info("Processing L1 blocks", "startL1Current", startL1Current.Number.Uint64(), "l1End", l1End.Number.Uint64())
 	// If there is a L1 reorg, sometimes this will happen.
-	if startL1Current.Number.Uint64() >= l1End.Number.Uint64() && startL1Current.Hash() != l1End.Hash() {
-		newL1Current, err := s.rpc.L1.HeaderByNumber(ctx, new(big.Int).Sub(l1End.Number, common.Big1))
-		if err != nil {
-			return err
-		}
-
-		log.Info(
-			"Reorg detected",
-			"oldL1CurrentHeight", startL1Current.Number,
-			"oldL1CurrentHash", startL1Current.Hash(),
-			"newL1CurrentHeight", newL1Current.Number,
-			"newL1CurrentHash", newL1Current.Hash(),
-			"l1Head", l1End.Number,
-		)
-
-		s.state.SetL1Current(newL1Current)
-		s.lastInsertedBlockID = nil
-	}
+	// if startL1Current.Number.Uint64() >= l1End.Number.Uint64() && startL1Current.Hash() != l1End.Hash() {
+	// 	newL1Current, err := s.rpc.L1.HeaderByNumber(ctx, new(big.Int).Sub(l1End.Number, common.Big1))
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	//
+	// 	log.Info(
+	// 		"Reorg detected",
+	// 		"oldL1CurrentHeight", startL1Current.Number,
+	// 		"oldL1CurrentHash", startL1Current.Hash(),
+	// 		"newL1CurrentHeight", newL1Current.Number,
+	// 		"newL1CurrentHash", newL1Current.Hash(),
+	// 		"l1Head", l1End.Number,
+	// 	)
+	//
+	// 	s.state.SetL1Current(newL1Current)
+	// 	s.lastInsertedBlockID = nil
+	// }
 
 	log.Info("Creating PublishedIterator")
 	iter, err := eventIterator.NewPublishedIterator(ctx, &eventIterator.PublishedIteratorConfig{
 		Client:           s.rpc.L1,
-		TaikoInbox:       s.rpc.MinimalRollupClients.Inbox,
+		TaikoInbox:       s.rpc.MinimalRollupClients.TaikoInbox,
 		StartHeight:      s.state.GetL1Current().Number,
 		EndHeight:        l1End.Number,
 		OnPublishedEvent: s.onPublished,
@@ -154,10 +154,10 @@ func (s *Syncer) processL1Blocks(ctx context.Context) error {
 	}
 
 	// If there is a L1 reorg, we don't update the L1Current cursor.
-	if !s.reorgDetectedFlag {
-		s.state.SetL1Current(l1End)
-		metrics.DriverL1CurrentHeightGauge.Set(float64(s.state.GetL1Current().Number.Uint64()))
-	}
+	// if !s.reorgDetectedFlag {
+	// 	s.state.SetL1Current(l1End)
+	// 	metrics.DriverL1CurrentHeightGauge.Set(float64(s.state.GetL1Current().Number.Uint64()))
+	// }
 
 	return nil
 }
@@ -268,32 +268,33 @@ func (s *Syncer) onPublished(
 		return nil
 	}
 
+	// TODO: Reimplement ORG checks
 	// If we are not inserting a block whose parent block is the latest verified block in protocol,
 	// and the node hasn't just finished the P2P sync, we check if the L1 chain has been reorged.
-	if !s.progressTracker.Triggered() {
-		// reorgCheckResult, err := s.checkReorg(ctx, blockID)
-		// if err != nil {
-		// 	return err
-		// }
-		//
-		// if reorgCheckResult.IsReorged {
-		// 	log.Info(
-		// 		"Reset L1Current cursor due to L1 reorg",
-		// 		"l1CurrentHeightOld", s.state.GetL1Current().Number,
-		// 		"l1CurrentHashOld", s.state.GetL1Current().Hash(),
-		// 		"l1CurrentHeightNew", reorgCheckResult.L1CurrentToReset.Number,
-		// 		"l1CurrentHashNew", reorgCheckResult.L1CurrentToReset.Hash(),
-		// 		"lastInsertedBlockIDOld", s.lastInsertedBlockID,
-		// 		"lastInsertedBlockIDNew", reorgCheckResult.LastHandledBlockIDToReset,
-		// 	)
-		// 	s.state.SetL1Current(reorgCheckResult.L1CurrentToReset)
-		// 	s.lastInsertedBlockID = reorgCheckResult.LastHandledBlockIDToReset
-		// 	s.reorgDetectedFlag = true
-		// 	endIter()
-		//
-		// 	return nil
-		// }
-	}
+	// if !s.progressTracker.Triggered() {
+	// 	reorgCheckResult, err := s.checkReorg(ctx, blockID)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	//
+	// 	if reorgCheckResult.IsReorged {
+	// 		log.Info(
+	// 			"Reset L1Current cursor due to L1 reorg",
+	// 			"l1CurrentHeightOld", s.state.GetL1Current().Number,
+	// 			"l1CurrentHashOld", s.state.GetL1Current().Hash(),
+	// 			"l1CurrentHeightNew", reorgCheckResult.L1CurrentToReset.Number,
+	// 			"l1CurrentHashNew", reorgCheckResult.L1CurrentToReset.Hash(),
+	// 			"lastInsertedBlockIDOld", s.lastInsertedBlockID,
+	// 			"lastInsertedBlockIDNew", reorgCheckResult.LastHandledBlockIDToReset,
+	// 		)
+	// 		s.state.SetL1Current(reorgCheckResult.L1CurrentToReset)
+	// 		s.lastInsertedBlockID = reorgCheckResult.LastHandledBlockIDToReset
+	// 		s.reorgDetectedFlag = true
+	// 		endIter()
+	//
+	// 		return nil
+	// 	}
+	// }
 
 	// Ignore those already inserted blocks.
 	if s.lastInsertedBlockID != nil && blockID.Cmp(s.lastInsertedBlockID) <= 0 {
@@ -390,107 +391,115 @@ func (s *Syncer) onPublished(
 
 // checkLastVerifiedBlockMismatch checks if there is a mismatch between protocol's last verified block hash and
 // the corresponding L2 EE block hash.
-// func (s *Syncer) checkLastVerifiedBlockMismatch(ctx context.Context) (*rpc.ReorgCheckResult, error) {
-// Fetch the latest verified block hash.
-// ts, err := s.rpc.GetLastVerifiedTransitionPacaya(ctx)
-// if err != nil {
-// 	return nil, err
-// }
-//
-// var (
-// 	reorgCheckResult    = new(rpc.ReorgCheckResult)
-// 	lastVerifiedBatchID = ts.BatchId
-// )
-//
-// // If the current L2 chain is behind of the last verified block, we skip the check.
-// if s.state.GetL2Head().Number.Uint64() < ts.BlockId ||
-// 	(s.lastInsertedBlockID != nil && s.lastInsertedBlockID.Uint64() < ts.BlockId) {
-// 	return reorgCheckResult, nil
-// }
-//
-// header, err := s.rpc.L2.HeaderByNumber(ctx, new(big.Int).SetUint64(ts.BlockId))
-// if err != nil {
-// 	return nil, fmt.Errorf("failed to fetch L2 header by number: %w", err)
-// }
-//
-// // If the last verified block hash matches the L2 EE block hash, we skip the check.
-// if header.Hash() == ts.Ts.BlockHash {
-// 	return reorgCheckResult, nil
-// }
-//
-// for {
-// 	batch, err := s.rpc.GetBatchByID(ctx, new(big.Int).SetUint64(lastVerifiedBatchID))
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to fetch batch by ID: %w", err)
-// 	}
-// 	previousBatch, err := s.rpc.GetBatchByID(ctx, new(big.Int).SetUint64(lastVerifiedBatchID-1))
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to fetch previous batch by ID: %w", err)
-// 	}
-//
-// 	if batch.VerifiedTransitionId.Cmp(common.Big0) == 0 {
-// 		lastVerifiedBatchID = previousBatch.BatchId
-// 		continue
-// 	}
-// 	// ts, err := s.rpc.PacayaClients.TaikoInbox.GetBatchVerifyingTransition(&bind.CallOpts{Context: ctx}, batch.BatchId)
-// 	// if err != nil {
-// 	// 	return nil, fmt.Errorf("failed to fetch Pacaya transition: %w", err)
-// 	// }
-// 	if header, err = s.rpc.L2.HeaderByNumber(ctx, new(big.Int).SetUint64(batch.LastBlockId)); err != nil {
-// 		return nil, fmt.Errorf("failed to fetch L2 header by number: %w", err)
-// 	}
-//
-// 	if header.Hash() == ts.BlockHash {
-// 		log.Info(
-// 			"Verified block matched, start reorging",
-// 			"currentHeightToCheck", batch.LastBlockId,
-// 			"chainBlockHash", header.Hash(),
-// 			"transitionBlockHash", common.BytesToHash(ts.BlockHash[:]),
-// 		)
-// 		reorgCheckResult.IsReorged = true
-// 		if reorgCheckResult.L1CurrentToReset, err = s.rpc.L1.HeaderByNumber(
-// 			ctx,
-// 			new(big.Int).SetUint64(batch.AnchorBlockId),
-// 		); err != nil {
-// 			return nil, fmt.Errorf("failed to fetch L1 header by number: %w", err)
-// 		}
-// 		reorgCheckResult.LastHandledBlockIDToReset = header.Number
-// 		return reorgCheckResult, nil
-// 	}
-//
-// 	log.Info(
-// 		"Verified block mismatch",
-// 		"currentHeightToCheck", batch.LastBlockId,
-// 		"chainBlockHash", header.Hash(),
-// 		"transitionBlockHash", common.BytesToHash(ts.BlockHash[:]),
-// 	)
-//
-// 	lastVerifiedBatchID = previousBatch.BatchId
-// }
-// }
+func (s *Syncer) checkLastVerifiedBlockMismatch(ctx context.Context) (*rpc.ReorgCheckResult, error) {
+	// Fetch the latest verified block hash.
+	// ts, err := s.rpc.GetLastVerifiedTransitionPacaya(ctx)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	var (
+	// reorgCheckResult    = new(rpc.ReorgCheckResult)
+	// lastVerifiedBatchID = ts.BatchId
+	)
+
+	// If the current L2 chain is behind of the last verified block, we skip the check.
+	// if s.state.GetL2Head().Number.Uint64() < ts.BlockId ||
+	// 	(s.lastInsertedBlockID != nil && s.lastInsertedBlockID.Uint64() < ts.BlockId) {
+	// 	return reorgCheckResult, nil
+	// }
+
+	// header, err := s.rpc.L2.HeaderByNumber(ctx, new(big.Int).SetUint64(ts.BlockId))
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to fetch L2 header by number: %w", err)
+	// }
+
+	// If the last verified block hash matches the L2 EE block hash, we skip the check.
+	// if header.Hash() == ts.Ts.BlockHash {
+	// 	return reorgCheckResult, nil
+	// }
+
+	for {
+		// batch, err := s.rpc.GetPublicationById(ctx, new(big.Int).SetUint64(lastVerifiedBatchID))
+		// if err != nil {
+		// 	return nil, fmt.Errorf("failed to fetch batch by ID: %w", err)
+		// }
+		// previousBatch, err := s.rpc.GetPublicationById(ctx, new(big.Int).SetUint64(lastVerifiedBatchID-1))
+		// if err != nil {
+		// 	return nil, fmt.Errorf("failed to fetch previous batch by ID: %w", err)
+		// }
+
+		// if batch.VerifiedTransitionId.Cmp(common.Big0) == 0 {
+		// 	lastVerifiedBatchID = previousBatch.BatchId
+		// 	continue
+		// }
+		// ts, err := s.rpc.PacayaClients.TaikoInbox.GetBatchVerifyingTransition(&bind.CallOpts{Context: ctx}, batch.BatchId)
+		// if err != nil {
+		// 	return nil, fmt.Errorf("failed to fetch Pacaya transition: %w", err)
+		// }
+
+		// TODO: Get latest verified publication id from inbox / checkpoint
+		// if header, err = s.rpc.L2.HeaderByNumber(ctx, new(big.Int).SetUint64(batch.LastBlockId)); err != nil {
+
+		// 	return nil, fmt.Errorf("failed to fetch L2 header by number: %w", err)
+		// }
+
+		// if header, err = s.rpc.L2.HeaderByNumber(ctx, new(big.Int).SetUint64(0)); err != nil {
+		// 	return nil, fmt.Errorf("failed to fetch L2 header by number: %w", err)
+		// }
+		//
+		// if header.Hash() == ts.BlockHash {
+		// 	log.Info(
+		// 		"Verified block matched, start reorging",
+		// 		"currentHeightToCheck", 0,
+		// 		"chainBlockHash", header.Hash(),
+		// 		"transitionBlockHash", common.BytesToHash(ts.BlockHash[:]),
+		// 	)
+		// 	reorgCheckResult.IsReorged = true
+		// 	// use anchor block id as L1CurrentToReset
+		// 	if reorgCheckResult.L1CurrentToReset, err = s.rpc.L1.HeaderByNumber(
+		// 		ctx,
+		// 		new(big.Int).SetUint64(0),
+		// 	); err != nil {
+		// 		return nil, fmt.Errorf("failed to fetch L1 header by number: %w", err)
+		// 	}
+		// 	reorgCheckResult.LastHandledBlockIDToReset = header.Number
+		// 	return reorgCheckResult, nil
+		// }
+		//
+		// log.Info(
+		// 	"Verified block mismatch",
+		// 	"currentHeightToCheck", 0,
+		// 	"chainBlockHash", header.Hash(),
+		// 	"transitionBlockHash", common.BytesToHash(ts.BlockHash[:]),
+		// )
+		//
+		// lastVerifiedBatchID = 0
+	}
+}
 
 // // checkReorg checks whether the L1 chain has been reorged, and resets the L1Current cursor if necessary.
-// func (s *Syncer) checkReorg(ctx context.Context, blockID *big.Int) (*rpc.ReorgCheckResult, error) {
-// 	// If the L2 chain is at genesis, we don't need to check L1 reorg.
-// 	if s.state.GetL1Current().Number == s.state.GenesisL1Height {
-// 		return new(rpc.ReorgCheckResult), nil
-// 	}
-//
-// 	// 1. Check if the verified blocks in L2 EE have been reorged.
-// 	reorgCheckResult, err := s.checkLastVerifiedBlockMismatch(ctx)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to check if the verified blocks in L2 EE have been reorged: %w", err)
-// 	}
-//
-// 	// 2. If the verified blocks check is passed, we check the unverified blocks.
-// 	if reorgCheckResult == nil || !reorgCheckResult.IsReorged {
-// 		if reorgCheckResult, err = s.rpc.CheckL1Reorg(ctx, new(big.Int).Sub(blockID, common.Big1)); err != nil {
-// 			return nil, fmt.Errorf("failed to check whether L1 chain has been reorged: %w", err)
-// 		}
-// 	}
-//
-// 	return reorgCheckResult, nil
-// }
+func (s *Syncer) checkReorg(ctx context.Context, blockID *big.Int) (*rpc.ReorgCheckResult, error) {
+	// If the L2 chain is at genesis, we don't need to check L1 reorg.
+	if s.state.GetL1Current().Number == s.state.GenesisL1Height {
+		return new(rpc.ReorgCheckResult), nil
+	}
+
+	// 1. Check if the verified blocks in L2 EE have been reorged.
+	reorgCheckResult, err := s.checkLastVerifiedBlockMismatch(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check if the verified blocks in L2 EE have been reorged: %w", err)
+	}
+
+	// 2. If the verified blocks check is passed, we check the unverified blocks.
+	if reorgCheckResult == nil || !reorgCheckResult.IsReorged {
+		if reorgCheckResult, err = s.rpc.CheckL1Reorg(ctx, new(big.Int).Sub(blockID, common.Big1)); err != nil {
+			return nil, fmt.Errorf("failed to check whether L1 chain has been reorged: %w", err)
+		}
+	}
+
+	return reorgCheckResult, nil
+}
 
 // BlocksInserterPacaya returns the Pacaya blocks inserter.
 func (s *Syncer) BlocksInserterPacaya() *blocksInserter.BlocksInserterPacaya {

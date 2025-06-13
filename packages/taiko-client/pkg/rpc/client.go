@@ -33,13 +33,12 @@ const (
 
 // MinimalRollupClients contains all smart contract clients for minimal-rollup interfaces.
 type MinimalRollupClients struct {
-	NewTaikoInbox *minimalBindings.IInbox
-	TaikoAnchor   *minimalBindings.ITaikoAnchor
+	TaikoInbox  *minimalBindings.IInbox
+	TaikoAnchor *minimalBindings.ITaikoAnchor
 	// ProverManager   *minimalBindings.IProverManager
 	ProposerFees          *minimalBindings.IProposerFees
 	Verifier              *minimalBindings.IVerifier
 	Lookahead             *minimalBindings.ILookahead
-	Inbox                 *minimalBindings.IInbox
 	CheckpointTracker     *minimalBindings.ICheckpointTracker
 	DelayedInclusionStore *minimalBindings.IDelayedInclusionStore
 }
@@ -66,7 +65,7 @@ type ClientConfig struct {
 	L2Endpoint                  string
 	L1BeaconEndpoint            string
 	L2CheckPoint                string
-	TaikoInboxAddress        common.Address
+	TaikoInboxAddress           common.Address
 	TaikoWrapperAddress         common.Address
 	TaikoAnchorAddress          common.Address
 	TaikoTokenAddress           common.Address
@@ -174,7 +173,7 @@ func (c *Client) initMinimalRollupClients(cfg *ClientConfig) error {
 	minimalClients := &MinimalRollupClients{}
 	var err error
 
-	if minimalClients.NewTaikoInbox, err = minimalBindings.NewIInbox(cfg.TaikoInboxAddress, c.L1); err != nil {
+	if minimalClients.TaikoInbox, err = minimalBindings.NewIInbox(cfg.TaikoInboxAddress, c.L1); err != nil {
 		return fmt.Errorf("failed to initialize PublicationFeed client: %w", err)
 	}
 
