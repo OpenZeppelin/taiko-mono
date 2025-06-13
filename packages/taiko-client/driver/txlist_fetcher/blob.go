@@ -67,6 +67,7 @@ func (d *BlobFetcher) FetchPacaya(
 
 	// NOTE: Ignoring this this for now as its failing
 	// This just checks that the blob hash matches the kzg commitment
+	// TODO: Fix comparing blob hash with kzg commitment
 
 	// for _, blobHash := range meta.GetBlobHashes() {
 	// 	// Compare the blob hash with the sidecar's kzg commitment.
