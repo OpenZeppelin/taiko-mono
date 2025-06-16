@@ -45,7 +45,7 @@ var (
 		Name:     "l1.beacon",
 		Usage:    "HTTP RPC endpoint of a L1 beacon node",
 		Category: commonCategory,
-		EnvVars:  []string{"L1_BEACON"},
+		EnvVars:  []string{"L1_BEACON_URL"},
 	}
 	L2HTTPEndpoint = &cli.StringFlag{
 		Name:     "l2.http",

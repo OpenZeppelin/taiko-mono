@@ -82,11 +82,13 @@ func (i *BlocksInserterPacaya) InsertBlocks(
 		if txListBytes, err = i.blobFetcher.FetchPacaya(ctx, meta); err != nil {
 			return fmt.Errorf("failed to fetch tx list from blob: %w", err)
 		}
-	} else {
-		if txListBytes, err = i.calldataFetcher.FetchPacaya(ctx, meta); err != nil {
-			return fmt.Errorf("failed to fetch tx list from calldata: %w", err)
-		}
 	}
+	// NOTE: We dont use calldata fetch for Alethia
+	// else {
+	// 	if txListBytes, err = i.calldataFetcher.FetchPacaya(ctx, meta); err != nil {
+	// 		return fmt.Errorf("failed to fetch tx list from calldata: %w", err)
+	// 	}
+	// }
 
 	var (
 		allTxs          = i.txListDecompressor.TryDecompress(i.rpc.L2.ChainID, txListBytes, len(meta.GetBlobHashes()) != 0)
@@ -137,37 +139,38 @@ func (i *BlocksInserterPacaya) InsertBlocks(
 		// If this is the first block in the batch, we check if the whole batch has been preconfirmed by
 		// trying to fetch the last block header from L2 EE. If it is preconfirmed, we can skip the rest of the blocks,
 		// and only update the L1Origin in L2 EE for each block.
-		if j == 0 {
-			lastBlockHeader, err := isBatchPreconfirmed(
-				ctx,
-				i.rpc,
-				i.anchorConstructor,
-				metadata,
-				allTxs,
-				txListBytes,
-				parent,
-				publicationId,
-			)
-			if err != nil {
-				log.Debug("Failed to check if batch is preconfirmed", "batchID", meta.GetBatchID(), "err", err)
-			} else if lastBlockHeader != nil {
-				log.Info(
-					"🧬 The batch is preconfirmed",
-					"batchID", meta.GetBatchID(),
-					"lastBlockID", meta.GetLastBlockID(),
-					"lastBlockHash", lastBlockHeader.Hash(),
-					"assignedProver", meta.GetProposer(),
-					"lastTimestamp", meta.GetLastBlockTimestamp(),
-					"coinbase", meta.GetCoinbase(),
-					"numBlobs", len(meta.GetBlobHashes()),
-					"blocks", len(meta.GetBlocks()),
-					"parentNumber", parent.Number,
-					"parentHash", parent.Hash(),
-				)
-
-				return updateL1OriginForBatch(ctx, i.rpc, metadata)
-			}
-		}
+		// NOTE: No concept of batch preconfirmation in Alethia
+		// if j == 0 {
+		// 	lastBlockHeader, err := isBatchPreconfirmed(
+		// 		ctx,
+		// 		i.rpc,
+		// 		i.anchorConstructor,
+		// 		metadata,
+		// 		allTxs,
+		// 		txListBytes,
+		// 		parent,
+		// 		publicationId,
+		// 	)
+		// 	if err != nil {
+		// 		log.Debug("Failed to check if batch is preconfirmed", "batchID", meta.GetBatchID(), "err", err)
+		// 	} else if lastBlockHeader != nil {
+		// 		log.Info(
+		// 			"🧬 The batch is preconfirmed",
+		// 			"batchID", meta.GetBatchID(),
+		// 			"lastBlockID", meta.GetLastBlockID(),
+		// 			"lastBlockHash", lastBlockHeader.Hash(),
+		// 			"assignedProver", meta.GetProposer(),
+		// 			"lastTimestamp", meta.GetLastBlockTimestamp(),
+		// 			"coinbase", meta.GetCoinbase(),
+		// 			"numBlobs", len(meta.GetBlobHashes()),
+		// 			"blocks", len(meta.GetBlocks()),
+		// 			"parentNumber", parent.Number,
+		// 			"parentHash", parent.Hash(),
+		// 		)
+		//
+		// 		return updateL1OriginForBatch(ctx, i.rpc, metadata)
+		// 	}
+		// }
 
 		// Otherwise, we need to create a new execution payload and set it as the head block in L2 EE.
 		createExecutionPayloadsMetaData, anchorTx, err := assembleCreateExecutionPayloadMetaPacaya(
