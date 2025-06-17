@@ -15,7 +15,7 @@ import (
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/chain_syncer/beaconsync"
 	blocksInserter "github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/chain_syncer/event/blocks_inserter"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/state"
-	"github.com/taikoxyz/taiko-mono/packages/taiko-client/internal/metrics"
+	// "github.com/taikoxyz/taiko-mono/packages/taiko-client/internal/metrics"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/pkg/rpc"
 
 	minimalBindings "github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/minimal"
@@ -255,13 +255,13 @@ func (s *Syncer) processL1Blocks(ctx context.Context) error {
 // onPublished is a `Published` event callback which responsible for
 func (s *Syncer) onPublished(
 	ctx context.Context,
-	event *minimalBindings.IInboxPublished,
+	meta metadata.TaikoPublicationData,
 	endIter eventIterator.EndPublishedEventIterFunc,
 ) error {
 	log.Info("onPublished called - processing Published event")
 	// Extract block information from the published event
-	blockID := event.Header.Id
-	timestamp := event.Header.Timestamp.Uint64()
+	blockID := meta.Header().Id
+	timestamp := meta.Header().Timestamp.Uint64()
 
 	// We simply ignore the genesis block's event
 	if blockID.Cmp(common.Big0) == 0 {
@@ -318,13 +318,14 @@ func (s *Syncer) onPublished(
 	}
 
 	// Insert new blocks to L2 EE's chain.
+
 	log.Info(
 		"New Publication event",
-		"l1Height", event.Raw.BlockNumber,
-		"l1Hash", event.Raw.BlockHash,
-		"pubId", event.Header.Id,
-		"timestamp", timestamp,
-		"attributes", len(event.Attributes),
+		"l1Height", meta.GetRawBlockHeight(),
+		"l1Hash", meta.GetRawBlockHash(),
+		"Publication ID", meta.Header().Id,
+		"Timestamp", meta.Header().Timestamp,
+		"Attributes", meta.Attributes(),
 	)
 
 	// NOTE: This block of code is creating a dummy metadata object to pass to the blocks inserter
@@ -334,52 +335,52 @@ func (s *Syncer) onPublished(
 
 	//*************************************************************************
 
-	// Fetch the transaction to get the blob hash
-	tx, isPending, err := s.rpc.L1.TransactionByHash(ctx, event.Raw.TxHash)
-	if err != nil {
-		return fmt.Errorf("failed to fetch transaction by hash: %w", err)
-	}
-
-	// Extract blob hashes from the transaction
-	var blobHashes []common.Hash
-	if tx.Type() == 3 { // EIP-4844 blob transaction
-		blobHashes = tx.BlobHashes()
-		log.Info("Found blob transaction", "txHash", tx.Hash(), "blobHashes", blobHashes)
-	} else {
-		log.Info("Transaction is not a blob transaction", "txHash", tx.Hash(), "txType", tx.Type())
-	}
-
-	// Create a placeholder metadata object from the Published event
-	meta := &placeholderPacayaMetadata{
-		event:      event,
-		blockID:    blockID,
-		endIter:    endIter,
-		blobHashes: blobHashes,
-	}
-
-	// Create a wrapper that implements TaikoProposalMetaData
-	wrappedMeta := &placeholderProposalMetadata{
-		pacayaMeta: meta,
-	}
-
-	// Create an adapter function to convert EndPublishedEventIterFunc to EndBatchProposedEventIterFunc
-	endIterAdapter := func() {
-		endIter()
-	}
-
-	log.Info("Inserting blocks with metadata",
-		"blockID", blockID,
-		"txHash", event.Raw.TxHash,
-		"isPending", isPending,
-		"blobHashes", blobHashes)
+	// // Fetch the transaction to get the blob hash
+	// tx, isPending, err := s.rpc.L1.TransactionByHash(ctx, meta.GetTxHash())
+	// if err != nil {
+	// 	return fmt.Errorf("failed to fetch transaction by hash: %w", err)
+	// }
+	//
+	// // Extract blob hashes from the transaction
+	// var blobHashes []common.Hash
+	// if tx.Type() == 3 { // EIP-4844 blob transaction
+	// 	blobHashes = tx.BlobHashes()
+	// 	log.Info("Found blob transaction", "txHash", tx.Hash(), "blobHashes", blobHashes)
+	// } else {
+	// 	log.Info("Transaction is not a blob transaction", "txHash", tx.Hash(), "txType", tx.Type())
+	// }
+	//
+	// // Create a placeholder metadata object from the Published event
+	// meta := &placeholderPacayaMetadata{
+	// 	event:      event,
+	// 	blockID:    blockID,
+	// 	endIter:    endIter,
+	// 	blobHashes: blobHashes,
+	// }
+	//
+	// // Create a wrapper that implements TaikoProposalMetaData
+	// wrappedMeta := &placeholderProposalMetadata{
+	// 	pacayaMeta: meta,
+	// }
+	//
+	// // Create an adapter function to convert EndPublishedEventIterFunc to EndBatchProposedEventIterFunc
+	// endIterAdapter := func() {
+	// 	endIter()
+	// }
+	//
+	// log.Info("Inserting blocks with metadata",
+	// 	"blockID", blockID,
+	// 	"txHash", event.Raw.TxHash,
+	// 	"isPending", isPending,
+	// 	"blobHashes", blobHashes)
 
 	// ************************************************************************
 
-	if err := s.blocksInserterPacaya.InsertBlocks(ctx, wrappedMeta, endIterAdapter); err != nil {
+	if err := s.blocksInserterPacaya.InsertBlocks(ctx, meta, endIter); err != nil {
 		return err
 	}
 
-	metrics.DriverL1CurrentHeightGauge.Set(float64(event.Raw.BlockNumber))
+	// metrics.DriverL1CurrentHeightGauge.Set(float64(event.Raw.BlockNumber))
 	s.lastInsertedBlockID = blockID
 
 	if s.progressTracker.Triggered() {

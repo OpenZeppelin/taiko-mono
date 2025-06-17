@@ -41,8 +41,13 @@ type IInboxPublicationHeader struct {
 
 type IInboxPublicationMetadata struct {
 	AnchorBlockId *big.Int
-	AnchorBlockHash [32]byte
+	AnchorBlockHash common.Hash
 	IsDelayedInclusion bool
+}
+
+type IBlobRegistryBlobRef struct  {
+	blockNumber *big.Int
+	blobhashes [][32]byte
 }
 
 // IInboxMetaData contains all meta data concerning the IInbox contract.

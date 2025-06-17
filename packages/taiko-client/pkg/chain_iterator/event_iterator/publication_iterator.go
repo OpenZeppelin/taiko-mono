@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 
+	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/metadata"
 	minimalBindings "github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/minimal"
 	chainIterator "github.com/taikoxyz/taiko-mono/packages/taiko-client/pkg/chain_iterator"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/pkg/rpc"
@@ -22,7 +23,7 @@ type EndPublishedEventIterFunc func()
 // iterated.
 type OnPublishedEvent func(
 	context.Context,
-	*minimalBindings.IInboxPublished,
+	metadata.TaikoPublicationData,
 	EndPublishedEventIterFunc,
 ) error
 
@@ -138,7 +139,7 @@ func assemblePublishedIteratorCallback(
 
 			//TODO(gustavo): We might need to convert the event to a metadata.TaikoProposalMetaData
 			// just like in the batch proposed iterator
-			if err := callback(ctx, event, eventIter.end); err != nil {
+			if err := callback(ctx, metadata.NewTaikoDataBlockMetadataAlethia(event), eventIter.end); err != nil {
 				log.Warn("Error while processing Published events, keep retrying", "error", err)
 				return err
 			}

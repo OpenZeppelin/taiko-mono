@@ -190,7 +190,7 @@ func isBatchPreconfirmed(
 	ctx context.Context,
 	rpc *rpc.Client,
 	anchorConstructor *anchorTxConstructor.AnchorTxConstructor,
-	metadata metadata.TaikoProposalMetaData,
+	metadata metadata.TaikoPublicationData,
 	allTxs []*types.Transaction,
 	txListBytes []byte,
 	parent *types.Header,
@@ -222,8 +222,8 @@ func isBatchPreconfirmed(
 			rpc,
 			&createPayloadAndSetHeadMetaData{
 				createExecutionPayloadsMetaData: createExecutionPayloadsMetaData,
-				AnchorBlockID:                   new(big.Int).SetUint64(metadata.Pacaya().GetAnchorBlockID()),
-				AnchorBlockHash:                 metadata.Pacaya().GetAnchorBlockHash(),
+				AnchorBlockID:                   new(big.Int).SetUint64(metadata.Attributes().Metadata().AnchorBlockId.Uint64()),
+				AnchorBlockHash:                 metadata.Attributes().Metadata().AnchorBlockHash,
 				BaseFeeConfig:                   metadata.Pacaya().GetBaseFeeConfig(),
 				Parent:                          parent,
 			},
@@ -348,21 +348,20 @@ func assembleCreateExecutionPayloadMetaPacaya(
 	ctx context.Context,
 	rpc *rpc.Client,
 	anchorConstructor *anchorTxConstructor.AnchorTxConstructor,
-	metadata metadata.TaikoProposalMetaData,
+	meta metadata.TaikoPublicationData,
 	allTxsInBatch []*types.Transaction,
 	publicationId *big.Int,
 	parent *types.Header,
 	blockIndex int,
 ) (*createExecutionPayloadsMetaData, *types.Transaction, error) {
-	if !metadata.IsPacaya() {
-		return nil, nil, fmt.Errorf("metadata is not for Pacaya fork")
-	}
+	// if !metadata.IsPacaya() {
+	// 	return nil, nil, fmt.Errorf("metadata is not for Pacaya fork")
+	// }
 	if blockIndex >= len(metadata.Pacaya().GetBlocks()) {
 		return nil, nil, fmt.Errorf("block index %d out of bounds", blockIndex)
 	}
 
 	var (
-		meta         = metadata.Pacaya()
 		blockID      = new(big.Int).Add(parent.Number, common.Big1)
 		blockInfo    = meta.GetBlocks()[blockIndex]
 		txListCursor = 0
@@ -385,19 +384,19 @@ func assembleCreateExecutionPayloadMetaPacaya(
 		"blockID", blockID,
 		"baseFee", utils.WeiToGWei(baseFee),
 		"parentGasUsed", parent.GasUsed,
-		"batchID", meta.GetBatchID(),
+		"publication ID", meta.Header().Id,
 		"indexInBatch", blockIndex,
 	)
 
 	// Assemble a TaikoAnchor.anchorV3 transaction
-	anchorBlockHeader, err := rpc.L1.HeaderByHash(ctx, meta.GetAnchorBlockHash())
+	anchorBlockHeader, err := rpc.L1.HeaderByHash(ctx, meta.Attributes().Metadata().AnchorBlockHash)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to fetch anchor block: %w", err)
 	}
 
 	anchorTx, err := anchorConstructor.AssembleAnchorV3Tx(
 		ctx,
-		new(big.Int).SetUint64(meta.GetAnchorBlockID()),
+		new(big.Int).SetUint64(meta.Attributes().Metadata().AnchorBlockId.Uint64()),
 		anchorBlockHeader.Root,
 		parent.GasUsed,
 		publicationId,

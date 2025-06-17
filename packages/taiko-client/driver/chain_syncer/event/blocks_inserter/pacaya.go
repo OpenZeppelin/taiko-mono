@@ -60,25 +60,24 @@ func NewBlocksInserterPacaya(
 // InsertBlocks inserts new Pacaya blocks to the L2 execution engine.
 func (i *BlocksInserterPacaya) InsertBlocks(
 	ctx context.Context,
-	metadata metadata.TaikoProposalMetaData,
-	endIter eventIterator.EndBatchProposedEventIterFunc,
+	meta metadata.TaikoPublicationData,
+	endIter eventIterator.EndPublishedEventIterFunc,
 ) (err error) {
-	if !metadata.IsPacaya() {
-		return fmt.Errorf("metadata is not for Pacaya fork")
-	}
+	// if !metadata.IsPacaya() {
+	// 	return fmt.Errorf("metadata is not for Pacaya fork")
+	// }
 	i.mutex.Lock()
 	defer i.mutex.Unlock()
 
 	var (
-		meta        = metadata.Pacaya()
+		// meta        = metadata.Pacaya()
 		txListBytes []byte
 	)
 
-	// TODO: GETPUBLICATIONID
-	var publicationId = new(big.Int).SetUint64(meta.GetBatchID().Uint64())
+	var publicationId = meta.Header().Id.Uint64()
 
 	// Fetch transactions list.
-	if len(meta.GetBlobHashes()) != 0 {
+	if len(meta.Attributes().BlobRef().BlobHashes) != 0 {
 		if txListBytes, err = i.blobFetcher.FetchPacaya(ctx, meta); err != nil {
 			return fmt.Errorf("failed to fetch tx list from blob: %w", err)
 		}
@@ -91,7 +90,7 @@ func (i *BlocksInserterPacaya) InsertBlocks(
 	// }
 
 	var (
-		allTxs          = i.txListDecompressor.TryDecompress(i.rpc.L2.ChainID, txListBytes, len(meta.GetBlobHashes()) != 0)
+		allTxs          = i.txListDecompressor.TryDecompress(i.rpc.L2.ChainID, txListBytes, len(meta.Attributes().BlobRef().BlobHashes) != 0)
 		parent          *types.Header
 		lastPayloadData *engine.ExecutableData
 	)
@@ -177,7 +176,7 @@ func (i *BlocksInserterPacaya) InsertBlocks(
 			ctx,
 			i.rpc,
 			i.anchorConstructor,
-			metadata,
+			meta,
 			allTxs,
 			publicationId,
 			parent,
@@ -193,8 +192,8 @@ func (i *BlocksInserterPacaya) InsertBlocks(
 			i.rpc,
 			&createPayloadAndSetHeadMetaData{
 				createExecutionPayloadsMetaData: createExecutionPayloadsMetaData,
-				AnchorBlockID:                   new(big.Int).SetUint64(meta.GetAnchorBlockID()),
-				AnchorBlockHash:                 meta.GetAnchorBlockHash(),
+				AnchorBlockID:                   new(big.Int).SetUint64(meta.Attributes().Metadata().AnchorBlockId.Uint64()),
+				AnchorBlockHash:                 meta.Attributes().Metadata().AnchorBlockHash,
 				BaseFeeConfig:                   meta.GetBaseFeeConfig(),
 				Parent:                          parent,
 			},
@@ -219,7 +218,7 @@ func (i *BlocksInserterPacaya) InsertBlocks(
 			"timestamp", lastPayloadData.Timestamp,
 			"baseFee", utils.WeiToGWei(lastPayloadData.BaseFeePerGas),
 			"withdrawals", len(lastPayloadData.Withdrawals),
-			"batchID", meta.GetBatchID(),
+			"publication ID", meta.Header().Id,
 			"gasLimit", lastPayloadData.GasLimit,
 			"gasUsed", lastPayloadData.GasUsed,
 			"parentHash", lastPayloadData.ParentHash,

@@ -52,6 +52,20 @@ type TaikoBatchMetaDataPacaya interface {
 type TaikoPublicationData interface {
 	Header() minimal.IInboxPublicationHeader
 	PublicationHash() common.Hash
-	Attributes() minimal.IInboxPublicationMetadata
+	Attributes() TaikoPublicationAttributesAlethia
 	AttributesHash() common.Hash
+	GetRawBlockHeight() *big.Int
+	GetRawBlockHash() common.Hash
+	GetTxIndex() uint
+	GetTxHash() common.Hash
+}
+
+type TaikoPublicationAttributesAlethia interface {
+	Metadata() minimal.IInboxPublicationMetadata
+	BlobRef() TaikoBlobRef
+}
+
+type TaikoBlobRef struct {
+	BlockNumber *big.Int
+	BlobHashes  []common.Hash
 }
