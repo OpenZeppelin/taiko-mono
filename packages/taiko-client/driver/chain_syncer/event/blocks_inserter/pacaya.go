@@ -107,22 +107,22 @@ func (i *BlocksInserterPacaya) InsertBlocks(
 
 			parent, err = i.rpc.L2.HeaderByHash(ctx, i.progressTracker.LastSyncedBlockHash())
 		} else {
-			// var parentNumber *big.Int
-			// if lastPayloadData == nil {
-			// 	if meta.GetBatchID().Uint64() == i.rpc.MinimalRollupClients.ForkHeights.Pacaya {
-			// 		parentNumber = new(big.Int).SetUint64(meta.GetBatchID().Uint64() - 1)
-			// 	} else {
-			// 		lastBatch, err := i.rpc.GetBatchByID(ctx, new(big.Int).SetUint64(meta.GetBatchID().Uint64()-1))
-			// 		if err != nil {
-			// 			return fmt.Errorf("failed to fetch last batch (%d): %w", meta.GetBatchID().Uint64()-1, err)
-			// 		}
-			// 		parentNumber = new(big.Int).SetUint64(lastBatch.LastBlockId)
-			// 	}
-			// } else {
-			// 	parentNumber = new(big.Int).SetUint64(lastPayloadData.Number)
-			// }
+			var parentNumber *big.Int
+			if lastPayloadData == nil {
+				if meta.GetBatchID().Uint64() == i.rpc.MinimalRollupClients.ForkHeights.Pacaya {
+					parentNumber = new(big.Int).SetUint64(meta.GetBatchID().Uint64() - 1)
+				} else {
+					lastBatch, err := i.rpc.GetBatchByID(ctx, new(big.Int).SetUint64(meta.GetBatchID().Uint64()-1))
+					if err != nil {
+						return fmt.Errorf("failed to fetch last batch (%d): %w", meta.GetBatchID().Uint64()-1, err)
+					}
+					parentNumber = new(big.Int).SetUint64(lastBatch.LastBlockId)
+				}
+			} else {
+				parentNumber = new(big.Int).SetUint64(lastPayloadData.Number)
+			}
 
-			// parent, err = i.rpc.L2ParentByCurrentBlockID(ctx, new(big.Int).Add(parentNumber, common.Big1))
+			parent, err = i.rpc.L2ParentByCurrentBlockID(ctx, new(big.Int).Add(parentNumber, common.Big1))
 		}
 		if err != nil {
 			return fmt.Errorf("failed to fetch L2 parent block: %w", err)

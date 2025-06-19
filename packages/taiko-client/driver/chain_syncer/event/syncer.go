@@ -334,6 +334,12 @@ func (s *Syncer) onPublished(
 	// I suspect some things might fail down the line if we don't do this
 
 	//*************************************************************************
+	tx, isPending, err := s.rpc.L1.TransactionByHash(ctx, meta.GetTxHash())
+	if err != nil {
+		return fmt.Errorf("failed to fetch transaction by hash: %w", err)
+	}
+	h := len(tx.BlobTxSidecar().Blobs)
+	fmt.Println(h)
 
 	// // Fetch the transaction to get the blob hash
 	// tx, isPending, err := s.rpc.L1.TransactionByHash(ctx, meta.GetTxHash())

@@ -324,47 +324,46 @@ func (c *Client) GetPublicationById(ctx context.Context, publicationID *big.Int)
 
 // // L2ParentByCurrentBlockID fetches the block header from L2 execution engine with the largest block id that
 // // smaller than the given `blockId`.
-//
-//	func (c *Client) L2ParentByCurrentBlockID(ctx context.Context, blockID *big.Int) (*types.Header, error) {
-//		ctxWithTimeout, cancel := CtxWithTimeoutOrDefault(ctx, defaultTimeout)
-//		defer cancel()
-//
-//		var (
-//			parentHash    common.Hash
-//			parentBlockID = new(big.Int).Sub(blockID, common.Big1)
-//		)
-//
-//		log.Debug("Get parent block by block ID", "parentBlockID", parentBlockID)
-//
-//		if parentBlockID.Cmp(common.Big0) == 0 {
-//			return c.L2.HeaderByNumber(ctxWithTimeout, common.Big0)
-//		}
-//
-//		l1Origin, err := c.L2.L1OriginByID(ctxWithTimeout, parentBlockID)
-//		if err != nil {
-//			if err.Error() != ethereum.NotFound.Error() {
-//				return nil, err
-//			}
-//
-//			// In some cases, the L1Origin data is not found in the L2 execution engine, we will try to fetch the parent
-//			// by the parent block ID.
-//			log.Warn("L1Origin not found, try to fetch parent by ID", "blockID", parentBlockID)
-//
-//			parent, err := c.L2.BlockByNumber(ctxWithTimeout, parentBlockID)
-//			if err != nil {
-//				return nil, err
-//			}
-//
-//			parentHash = parent.Hash()
-//		} else {
-//			parentHash = l1Origin.L2BlockHash
-//		}
-//
-//		log.Debug("Parent block L1 origin", "l1Origin", l1Origin, "parentBlockID", parentBlockID)
-//
-//		return c.L2.HeaderByHash(ctxWithTimeout, parentHash)
-//	}
-//
+func (c *Client) L2ParentByCurrentBlockID(ctx context.Context, blockID *big.Int) (*types.Header, error) {
+	ctxWithTimeout, cancel := CtxWithTimeoutOrDefault(ctx, defaultTimeout)
+	defer cancel()
+
+	var (
+		parentHash    common.Hash
+		parentBlockID = new(big.Int).Sub(blockID, common.Big1)
+	)
+
+	log.Debug("Get parent block by block ID", "parentBlockID", parentBlockID)
+
+	if parentBlockID.Cmp(common.Big0) == 0 {
+		return c.L2.HeaderByNumber(ctxWithTimeout, common.Big0)
+	}
+
+	l1Origin, err := c.L2.L1OriginByID(ctxWithTimeout, parentBlockID)
+	if err != nil {
+		if err.Error() != ethereum.NotFound.Error() {
+			return nil, err
+		}
+
+		// In some cases, the L1Origin data is not found in the L2 execution engine, we will try to fetch the parent
+		// by the parent block ID.
+		log.Warn("L1Origin not found, try to fetch parent by ID", "blockID", parentBlockID)
+
+		parent, err := c.L2.BlockByNumber(ctxWithTimeout, parentBlockID)
+		if err != nil {
+			return nil, err
+		}
+
+		parentHash = parent.Hash()
+	} else {
+		parentHash = l1Origin.L2BlockHash
+	}
+
+	log.Debug("Parent block L1 origin", "l1Origin", l1Origin, "parentBlockID", parentBlockID)
+
+	return c.L2.HeaderByHash(ctxWithTimeout, parentHash)
+}
+
 // WaitL2Header keeps waiting for the L2 block header of the given block ID.
 func (c *Client) WaitL2Header(ctx context.Context, blockID *big.Int) (*types.Header, error) {
 	var (
