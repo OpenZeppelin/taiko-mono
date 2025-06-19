@@ -18,7 +18,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/encoding"
+	// "github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/encoding"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/metadata"
 	anchorTxConstructor "github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/anchor_tx_constructor"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/pkg/rpc"
@@ -197,47 +197,48 @@ func isBatchPreconfirmed(
 	publicationId *big.Int,
 ) (*types.Header, error) {
 	// Check each block in the batch, and if the all blocks are preconfirmed, return the header of the last block.
-	for i := 0; i < len(metadata.Pacaya().GetBlocks()); i++ {
-		createExecutionPayloadsMetaData, anchorTx, err := assembleCreateExecutionPayloadMetaPacaya(
-			ctx,
-			rpc,
-			anchorConstructor,
-			metadata,
-			allTxs,
-			publicationId,
-			parent,
-			i,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to assemble execution payload creation metadata: %w", err)
-		}
-
-		b, err := rlp.EncodeToBytes(append([]*types.Transaction{anchorTx}, createExecutionPayloadsMetaData.Txs...))
-		if err != nil {
-			return nil, fmt.Errorf("failed to RLP encode tx list: %w", err)
-		}
-
-		header, err := isBlockPreconfirmed(
-			ctx,
-			rpc,
-			&createPayloadAndSetHeadMetaData{
-				createExecutionPayloadsMetaData: createExecutionPayloadsMetaData,
-				AnchorBlockID:                   new(big.Int).SetUint64(metadata.Attributes().Metadata().AnchorBlockId.Uint64()),
-				AnchorBlockHash:                 metadata.Attributes().Metadata().AnchorBlockHash,
-				BaseFeeConfig:                   metadata.Pacaya().GetBaseFeeConfig(),
-				Parent:                          parent,
-			},
-			b,
-			anchorTx,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to check if block is preconfirmed: %w", err)
-		}
-
-		parent = header
-	}
-
-	return parent, nil
+	// for i := 0; i < len(metadata.Pacaya().GetBlocks()); i++ {
+	// 	createExecutionPayloadsMetaData, anchorTx, err := assembleCreateExecutionPayloadMetaPacaya(
+	// 		ctx,
+	// 		rpc,
+	// 		anchorConstructor,
+	// 		metadata,
+	// 		allTxs,
+	// 		publicationId,
+	// 		parent,
+	// 		i,
+	// 	)
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("failed to assemble execution payload creation metadata: %w", err)
+	// 	}
+	//
+	// 	b, err := rlp.EncodeToBytes(append([]*types.Transaction{anchorTx}, createExecutionPayloadsMetaData.Txs...))
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("failed to RLP encode tx list: %w", err)
+	// 	}
+	//
+	// 	header, err := isBlockPreconfirmed(
+	// 		ctx,
+	// 		rpc,
+	// 		&createPayloadAndSetHeadMetaData{
+	// 			createExecutionPayloadsMetaData: createExecutionPayloadsMetaData,
+	// 			AnchorBlockID:                   new(big.Int).SetUint64(metadata.Attributes().Metadata().AnchorBlockId.Uint64()),
+	// 			AnchorBlockHash:                 metadata.Attributes().Metadata().AnchorBlockHash,
+	// 			// BaseFeeConfig:                   metadata.Pacaya().GetBaseFeeConfig(),
+	// 			Parent: parent,
+	// 		},
+	// 		b,
+	// 		anchorTx,
+	// 	)
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("failed to check if block is preconfirmed: %w", err)
+	// 	}
+	//
+	// 	parent = header
+	// }
+	//
+	// return parent, nil
+	return nil, nil
 }
 
 // isBlockPreconfirmed checks if the block is preconfirmed.
@@ -357,87 +358,88 @@ func assembleCreateExecutionPayloadMetaPacaya(
 	// if !metadata.IsPacaya() {
 	// 	return nil, nil, fmt.Errorf("metadata is not for Pacaya fork")
 	// }
-	if blockIndex >= len(metadata.Pacaya().GetBlocks()) {
-		return nil, nil, fmt.Errorf("block index %d out of bounds", blockIndex)
-	}
+	// if blockIndex >= len(metadata.GetBlocks()) {
+	// 	return nil, nil, fmt.Errorf("block index %d out of bounds", blockIndex)
+	// }
 
-	var (
-		blockID      = new(big.Int).Add(parent.Number, common.Big1)
-		blockInfo    = meta.GetBlocks()[blockIndex]
-		txListCursor = 0
-	)
-	difficulty, err := encoding.CalculatePacayaDifficulty(blockID)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to calculate difficulty: %w", err)
-	}
-	timestamp := meta.GetLastBlockTimestamp()
-	for i := len(meta.GetBlocks()) - 1; i > blockIndex; i-- {
-		timestamp = timestamp - uint64(meta.GetBlocks()[i].TimeShift)
-	}
-	baseFee, err := rpc.CalculateBaseFee(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	log.Info(
-		"L2 baseFee",
-		"blockID", blockID,
-		"baseFee", utils.WeiToGWei(baseFee),
-		"parentGasUsed", parent.GasUsed,
-		"publication ID", meta.Header().Id,
-		"indexInBatch", blockIndex,
-	)
+	// var (
+	// 	blockID      = new(big.Int).Add(parent.Number, common.Big1)
+	// 	blockInfo    = meta.GetBlocks()[blockIndex]
+	// 	txListCursor = 0
+	// )
+	// difficulty, err := encoding.CalculatePacayaDifficulty(blockID)
+	// if err != nil {
+	// 	return nil, nil, fmt.Errorf("failed to calculate difficulty: %w", err)
+	// }
+	// timestamp := meta.GetLastBlockTimestamp()
+	// for i := len(meta.GetBlocks()) - 1; i > blockIndex; i-- {
+	// 	timestamp = timestamp - uint64(meta.GetBlocks()[i].TimeShift)
+	// }
+	// baseFee, err := rpc.CalculateBaseFee(ctx)
+	// if err != nil {
+	// 	return nil, nil, err
+	// }
+	//
+	// log.Info(
+	// 	"L2 baseFee",
+	// 	"blockID", blockID,
+	// 	"baseFee", utils.WeiToGWei(baseFee),
+	// 	"parentGasUsed", parent.GasUsed,
+	// 	"publication ID", meta.Header().Id,
+	// 	"indexInBatch", blockIndex,
+	// )
 
 	// Assemble a TaikoAnchor.anchorV3 transaction
-	anchorBlockHeader, err := rpc.L1.HeaderByHash(ctx, meta.Attributes().Metadata().AnchorBlockHash)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to fetch anchor block: %w", err)
-	}
-
-	anchorTx, err := anchorConstructor.AssembleAnchorV3Tx(
-		ctx,
-		new(big.Int).SetUint64(meta.Attributes().Metadata().AnchorBlockId.Uint64()),
-		anchorBlockHeader.Root,
-		parent.GasUsed,
-		publicationId,
-		*parent,
-		blockID,
-		baseFee,
-	)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create TaikoAnchor.anchorV3 transaction: %w", err)
-	}
-
-	for i := 0; i < blockIndex; i++ {
-		txListCursor += int(meta.GetBlocks()[i].NumTransactions)
-	}
+	// anchorBlockHeader, err := rpc.L1.HeaderByHash(ctx, meta.Attributes().Metadata().AnchorBlockHash)
+	// if err != nil {
+	// 	return nil, nil, fmt.Errorf("failed to fetch anchor block: %w", err)
+	// }
+	//
+	// anchorTx, err := anchorConstructor.AssembleAnchorV3Tx(
+	// 	ctx,
+	// 	new(big.Int).SetUint64(meta.Attributes().Metadata().AnchorBlockId.Uint64()),
+	// 	anchorBlockHeader.Root,
+	// 	parent.GasUsed,
+	// 	publicationId,
+	// 	*parent,
+	// 	blockID,
+	// 	baseFee,
+	// )
+	// if err != nil {
+	// 	return nil, nil, fmt.Errorf("failed to create TaikoAnchor.anchorV3 transaction: %w", err)
+	// }
+	//
+	// for i := 0; i < blockIndex; i++ {
+	// 	txListCursor += int(meta.GetBlocks()[i].NumTransactions)
+	// }
 
 	// Get transactions in the block.
-	txs := types.Transactions{}
-	if txListCursor+int(blockInfo.NumTransactions) <= len(allTxsInBatch) {
-		txs = allTxsInBatch[txListCursor : txListCursor+int(blockInfo.NumTransactions)]
-	} else if txListCursor < len(allTxsInBatch) {
-		txs = allTxsInBatch[txListCursor:]
-	}
-
-	return &createExecutionPayloadsMetaData{
-		BlockID:               blockID,
-		ExtraData:             meta.GetExtraData(),
-		SuggestedFeeRecipient: meta.GetCoinbase(),
-		GasLimit:              uint64(meta.GetGasLimit()),
-		Difficulty:            common.BytesToHash(difficulty),
-		Timestamp:             timestamp,
-		ParentHash:            parent.Hash(),
-		L1Origin: &rawdb.L1Origin{
-			BlockID:       blockID,
-			L2BlockHash:   common.Hash{}, // Will be set by taiko-geth.
-			L1BlockHeight: meta.GetRawBlockHeight(),
-			L1BlockHash:   meta.GetRawBlockHash(),
-		},
-		Txs:         txs,
-		Withdrawals: make([]*types.Withdrawal, 0),
-		BaseFee:     baseFee,
-	}, anchorTx, nil
+	// txs := types.Transactions{}
+	// if txListCursor+int(blockInfo.NumTransactions) <= len(allTxsInBatch) {
+	// 	txs = allTxsInBatch[txListCursor : txListCursor+int(blockInfo.NumTransactions)]
+	// } else if txListCursor < len(allTxsInBatch) {
+	// 	txs = allTxsInBatch[txListCursor:]
+	// }
+	//
+	// return &createExecutionPayloadsMetaData{
+	// 	BlockID: blockID,
+	// ExtraData:             meta.GetExtraData(),
+	// SuggestedFeeRecipient: meta.GetCoinbase(),
+	// GasLimit:              uint64(meta.GetGasLimit()),
+	// 	Difficulty: common.BytesToHash(difficulty),
+	// 	Timestamp:  timestamp,
+	// 	ParentHash: parent.Hash(),
+	// 	L1Origin: &rawdb.L1Origin{
+	// 		BlockID:       blockID,
+	// 		L2BlockHash:   common.Hash{}, // Will be set by taiko-geth.
+	// 		L1BlockHeight: meta.GetRawBlockHeight(),
+	// 		L1BlockHash:   meta.GetRawBlockHash(),
+	// 	},
+	// 	Txs:         txs,
+	// 	Withdrawals: make([]*types.Withdrawal, 0),
+	// 	BaseFee:     baseFee,
+	// }, anchorTx, nil
+	return nil, nil, nil
 }
 
 func updateL1OriginForBatch(

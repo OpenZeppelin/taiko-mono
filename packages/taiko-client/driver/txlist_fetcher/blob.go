@@ -3,12 +3,12 @@ package txlistfetcher
 import (
 	"context"
 	// "crypto/sha256"
-	"math/big"
+	// "math/big"
 
 	// "github.com/ethereum-optimism/optimism/op-service/eth"
 	// "github.com/ethereum/go-ethereum/common"
 	// "github.com/ethereum/go-ethereum/crypto/kzg4844"
-	"github.com/ethereum/go-ethereum/log"
+	// "github.com/ethereum/go-ethereum/log"
 
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/metadata"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/pkg"
@@ -35,35 +35,35 @@ func (d *BlobFetcher) FetchPacaya(
 		return nil, pkg.ErrBlobUnused
 	}
 
-	var blockNum uint64
-	if meta.GetBlobCreatedIn().Int64() == 0 {
-		blockNum = meta.GetProposedIn()
-	} else {
-		blockNum = uint64(meta.GetBlobCreatedIn().Int64())
-	}
-
-	// Fetch the L1 block header with the given blob.
-	l1Header, err := d.cli.L1.HeaderByNumber(ctx, new(big.Int).SetUint64(blockNum))
-	if err != nil {
-		return nil, err
-	}
-
-	var b []byte
-	// Fetch the L1 block sidecars.
-	sidecars, err := d.dataSource.GetBlobs(
-		ctx,
-		l1Header.Time,
-		meta.Attributes().BlobRef().BlobHashes,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Info(
-		"Fetch sidecars",
-		"blockNumber", blockNum,
-		"sidecars", len(sidecars),
-	)
+	// var blockNum uint64
+	// if meta.GetBlobCreatedIn().Int64() == 0 {
+	// 	blockNum = meta.GetProposedIn()
+	// } else {
+	// 	blockNum = uint64(meta.GetBlobCreatedIn().Int64())
+	// }
+	//
+	// // Fetch the L1 block header with the given blob.
+	// l1Header, err := d.cli.L1.HeaderByNumber(ctx, new(big.Int).SetUint64(blockNum))
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// var b []byte
+	// // Fetch the L1 block sidecars.
+	// sidecars, err := d.dataSource.GetBlobs(
+	// 	ctx,
+	// 	l1Header.Time,
+	// 	meta.Attributes().BlobRef().BlobHashes,
+	// )
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// log.Info(
+	// 	"Fetch sidecars",
+	// 	"blockNumber", blockNum,
+	// 	"sidecars", len(sidecars),
+	// )
 
 	// NOTE: Ignoring this this for now as its failing
 	// This just checks that the blob hash matches the kzg commitment
@@ -95,5 +95,6 @@ func (d *BlobFetcher) FetchPacaya(
 	// 	return nil, pkg.ErrSidecarNotFound
 	// }
 
-	return sliceTxList(meta.GetBatchID(), b, meta.GetTxListOffset(), meta.GetTxListSize())
+	// return sliceTxList(meta.GetBatchID(), b, meta.GetTxListOffset(), meta.GetTxListSize())
+	return nil, nil
 }

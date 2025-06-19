@@ -58,6 +58,10 @@ type TaikoPublicationData interface {
 	GetRawBlockHash() common.Hash
 	GetTxIndex() uint
 	GetTxHash() common.Hash
+	// REMOVE THESE LATER
+	// GetBlocks() []pacayaBindings.ITaikoInboxBlockParams
+	// GetBaseFeeConfig() *pacayaBindings.LibSharedDataBaseFeeConfig
+	// GetLastBlockTimestamp() uint64
 }
 
 type TaikoPublicationAttributesAlethia interface {
