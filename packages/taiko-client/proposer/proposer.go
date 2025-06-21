@@ -118,7 +118,7 @@ func (p *Proposer) InitFromConfig(
 		p.L1ProposerPrivKey,
 		cfg.L2SuggestedFeeRecipient,
 		cfg.TaikoInboxAddress,
-		cfg.TaikoWrapperAddress,
+		// cfg.TaikoWrapperAddress,
 		cfg.ProverSetAddress,
 		cfg.ProposeBlockTxGasLimit,
 		p.chainConfig,
@@ -338,46 +338,47 @@ func (p *Proposer) ProposeTxListPacaya(
 	parentMetaHash common.Hash,
 ) error {
 	var (
-		proposerAddress = p.proposerAddress
-		txs             uint64
+		// proposerAddress = p.proposerAddress
+		txs uint64
 	)
 
 	// Make sure the tx list is not bigger than the maxBlocksPerBatch.
-	if len(txBatch) > p.protocolConfigs.MaxBlocksPerBatch() {
-		return fmt.Errorf("tx batch size is larger than the maxBlocksPerBatch")
-	}
+	// TODO: Add back tx size check
+	// if len(txBatch) > p.protocolConfigs.MaxBlocksPerBatch() {
+	// 	return fmt.Errorf("tx batch size is larger than the maxBlocksPerBatch")
+	// }
 
 	for _, txList := range txBatch {
 		txs += uint64(len(txList))
 	}
 
 	// Check balance.
-	if p.Config.ClientConfig.ProverSetAddress != rpc.ZeroAddress {
-		proposerAddress = p.Config.ClientConfig.ProverSetAddress
-	}
+	// if p.Config.ClientConfig.ProverSetAddress != rpc.ZeroAddress {
+	// 	proposerAddress = p.Config.ClientConfig.ProverSetAddress
+	// }
 
-	ok, err := rpc.CheckProverBalance(
-		ctx,
-		p.rpc,
-		proposerAddress,
-		p.TaikoInboxAddress,
-		new(big.Int).Add(
-			p.protocolConfigs.LivenessBond(),
-			new(big.Int).Mul(
-				p.protocolConfigs.LivenessBondPerBlock(),
-				new(big.Int).SetUint64(uint64(len(txBatch))),
-			),
-		),
-	)
+	// ok, err := rpc.CheckProverBalance(
+	// 	ctx,
+	// 	p.rpc,
+	// 	proposerAddress,
+	// 	p.TaikoInboxAddress,
+	// 	new(big.Int).Add(
+	// 		p.protocolConfigs.LivenessBond(),
+	// 		new(big.Int).Mul(
+	// 			p.protocolConfigs.LivenessBondPerBlock(),
+	// 			new(big.Int).SetUint64(uint64(len(txBatch))),
+	// 		),
+	// 	),
+	// )
 
-	if err != nil {
-		log.Warn("Failed to check prover balance", "proposer", proposerAddress, "error", err)
-		return err
-	}
-
-	if !ok {
-		return fmt.Errorf("insufficient proposer (%s) balance", proposerAddress.Hex())
-	}
+	// if err != nil {
+	// 	log.Warn("Failed to check prover balance", "proposer", proposerAddress, "error", err)
+	// 	return err
+	// }
+	//
+	// if !ok {
+	// 	return fmt.Errorf("insufficient proposer (%s) balance", proposerAddress.Hex())
+	// }
 
 	// TODO: HANDLE FORCED INCLUSION
 	// forcedInclusion, minTxsPerForcedInclusion, err := p.rpc.GetForcedInclusionPacaya(ctx)
@@ -414,8 +415,8 @@ func (p *Proposer) ProposeTxListPacaya(
 
 	log.Info("📝 Propose blocks batch succeeded", "blocksInBatch", len(txBatch), "txs", txs)
 
-	metrics.ProposerProposedTxListsCounter.Add(float64(len(txBatch)))
-	metrics.ProposerProposedTxsCounter.Add(float64(txs))
+	// metrics.ProposerProposedTxListsCounter.Add(float64(len(txBatch)))
+	// metrics.ProposerProposedTxsCounter.Add(float64(txs))
 
 	return nil
 }

@@ -25,11 +25,11 @@ import (
 // TxBuilderWithFallback builds type-2 or type-3 transactions based on the
 // the realtime onchain cost, if the fallback feature is enabled.
 type TxBuilderWithFallback struct {
-	rpc                        *rpc.Client
-	blobTransactionBuilder     *BlobTransactionBuilder
-	calldataTransactionBuilder *CalldataTransactionBuilder
-	txmgrSelector              *utils.TxMgrSelector
-	fallback                   bool
+	rpc                    *rpc.Client
+	blobTransactionBuilder *BlobTransactionBuilder
+	// calldataTransactionBuilder *CalldataTransactionBuilder
+	txmgrSelector *utils.TxMgrSelector
+	fallback      bool
 }
 
 // NewBuilderWithFallback creates a new TxBuilderWithFallback instance.
@@ -38,7 +38,7 @@ func NewBuilderWithFallback(
 	proposerPrivateKey *ecdsa.PrivateKey,
 	l2SuggestedFeeRecipient common.Address,
 	taikoInboxAddress common.Address,
-	taikoWrapperAddress common.Address,
+	// taikoWrapperAddress common.Address,
 	proverSetAddress common.Address,
 	gasLimit uint64,
 	chainConfig *config.ChainConfig,
@@ -49,31 +49,31 @@ func NewBuilderWithFallback(
 ) *TxBuilderWithFallback {
 	builder := &TxBuilderWithFallback{rpc: rpc, fallback: fallback, txmgrSelector: txmgrSelector}
 
-	if blobAllowed {
-		builder.blobTransactionBuilder = NewBlobTransactionBuilder(
-			rpc,
-			proposerPrivateKey,
-			taikoInboxAddress,
-			taikoWrapperAddress,
-			proverSetAddress,
-			l2SuggestedFeeRecipient,
-			gasLimit,
-			chainConfig,
-			revertProtectionEnabled,
-		)
-	}
-
-	builder.calldataTransactionBuilder = NewCalldataTransactionBuilder(
+	// if blobAllowed {
+	builder.blobTransactionBuilder = NewBlobTransactionBuilder(
 		rpc,
 		proposerPrivateKey,
-		l2SuggestedFeeRecipient,
 		taikoInboxAddress,
-		taikoWrapperAddress,
+		// taikoWrapperAddress,
 		proverSetAddress,
+		l2SuggestedFeeRecipient,
 		gasLimit,
 		chainConfig,
 		revertProtectionEnabled,
 	)
+	// }
+
+	// builder.calldataTransactionBuilder = NewCalldataTransactionBuilder(
+	// 	rpc,
+	// 	proposerPrivateKey,
+	// 	l2SuggestedFeeRecipient,
+	// 	taikoInboxAddress,
+	// 	taikoWrapperAddress,
+	// 	proverSetAddress,
+	// 	gasLimit,
+	// 	chainConfig,
+	// 	revertProtectionEnabled,
+	// )
 
 	return builder
 }
@@ -93,33 +93,33 @@ func (b *TxBuilderWithFallback) BuildPacaya(
 	// 	)
 	// }
 	// If blob is enabled, and fallback is not enabled, just build a blob transaction.
-	if !b.fallback {
-		return b.blobTransactionBuilder.BuildPacaya(ctx, txBatch, parentMetahash)
-	}
+	// if !b.fallback {
+	// return b.blobTransactionBuilder.BuildPacaya(ctx, txBatch, parentMetahash)
+	// }
 
 	// Otherwise, compare the cost, and choose the cheaper option.
 	var (
-		g              = new(errgroup.Group)
-		txWithCalldata *txmgr.TxCandidate
-		txWithBlob     *txmgr.TxCandidate
-		costCalldata   *big.Int
-		costBlob       *big.Int
-		err            error
+		g = new(errgroup.Group)
+		// txWithCalldata *txmgr.TxCandidate
+		txWithBlob *txmgr.TxCandidate
+		// costCalldata *big.Int
+		costBlob *big.Int
+		err      error
 	)
 
-	g.Go(func() error {
-		if txWithCalldata, err = b.calldataTransactionBuilder.BuildPacaya(
-			ctx,
-			txBatch,
-			parentMetahash,
-		); err != nil {
-			return fmt.Errorf("failed to build type-2 transaction: %w", err)
-		}
-		if costCalldata, err = b.estimateCandidateCost(ctx, txWithCalldata); err != nil {
-			return fmt.Errorf("failed to estimate type-2 transaction cost: %w", encoding.TryParsingCustomError(err))
-		}
-		return nil
-	})
+	// g.Go(func() error {
+	// 	if txWithCalldata, err = b.calldataTransactionBuilder.BuildPacaya(
+	// 		ctx,
+	// 		txBatch,
+	// 		parentMetahash,
+	// 	); err != nil {
+	// 		return fmt.Errorf("failed to build type-2 transaction: %w", err)
+	// 	}
+	// 	if costCalldata, err = b.estimateCandidateCost(ctx, txWithCalldata); err != nil {
+	// 		return fmt.Errorf("failed to estimate type-2 transaction cost: %w", encoding.TryParsingCustomError(err))
+	// 	}
+	// 	return nil
+	// })
 	g.Go(func() error {
 		if txWithBlob, err = b.blobTransactionBuilder.BuildPacaya(
 			ctx,
@@ -142,22 +142,22 @@ func (b *TxBuilderWithFallback) BuildPacaya(
 	}
 
 	var (
-		costCalldataFloat64 float64
-		costBlobFloat64     float64
+		// costCalldataFloat64 float64
+		costBlobFloat64 float64
 	)
-	costCalldataFloat64, _ = utils.WeiToEther(costCalldata).Float64()
+	// costCalldataFloat64, _ = utils.WeiToEther(costCalldata).Float64()
 	costBlobFloat64, _ = utils.WeiToEther(costBlob).Float64()
 
-	metrics.ProposerEstimatedCostCalldata.Set(costCalldataFloat64)
+	// metrics.ProposerEstimatedCostCalldata.Set(costCalldataFloat64)
 	metrics.ProposerEstimatedCostBlob.Set(costBlobFloat64)
 
-	if costCalldata.Cmp(costBlob) < 0 {
-		log.Info("Building a type-2 transaction", "costCalldata", costCalldataFloat64, "costBlob", costBlobFloat64)
-		metrics.ProposerProposeByCalldata.Inc()
-		return txWithCalldata, nil
-	}
+	// if costCalldata.Cmp(costBlob) < 0 {
+	// 	log.Info("Building a type-2 transaction", "costCalldata", costCalldataFloat64, "costBlob", costBlobFloat64)
+	// 	metrics.ProposerProposeByCalldata.Inc()
+	// 	return txWithCalldata, nil
+	// }
 
-	log.Info("Building a type-3 transaction", "costCalldata", costCalldataFloat64, "costBlob", costBlobFloat64)
+	log.Info("Building a type-3 transaction", "costBlob", costBlobFloat64)
 	metrics.ProposerProposeByBlob.Inc()
 	return txWithBlob, nil
 }

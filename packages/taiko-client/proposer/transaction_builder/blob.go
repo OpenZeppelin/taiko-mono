@@ -21,10 +21,10 @@ import (
 // BlobTransactionBuilder is responsible for building a TaikoInbox.proposeBatch transaction with txList
 // bytes saved in blob.
 type BlobTransactionBuilder struct {
-	rpc                     *rpc.Client
-	proposerPrivateKey      *ecdsa.PrivateKey
-	taikoInboxAddress       common.Address
-	taikoWrapperAddress     common.Address
+	rpc                *rpc.Client
+	proposerPrivateKey *ecdsa.PrivateKey
+	taikoInboxAddress  common.Address
+	// taikoWrapperAddress     common.Address
 	proverSetAddress        common.Address
 	l2SuggestedFeeRecipient common.Address
 	gasLimit                uint64
@@ -37,7 +37,7 @@ func NewBlobTransactionBuilder(
 	rpc *rpc.Client,
 	proposerPrivateKey *ecdsa.PrivateKey,
 	taikoInboxAddress common.Address,
-	taikoWrapperAddress common.Address,
+	// taikoWrapperAddress common.Address,
 	proverSetAddress common.Address,
 	l2SuggestedFeeRecipient common.Address,
 	gasLimit uint64,
@@ -48,7 +48,7 @@ func NewBlobTransactionBuilder(
 		rpc,
 		proposerPrivateKey,
 		taikoInboxAddress,
-		taikoWrapperAddress,
+		// taikoWrapperAddress,
 		proverSetAddress,
 		l2SuggestedFeeRecipient,
 		gasLimit,
@@ -69,7 +69,7 @@ func (b *BlobTransactionBuilder) BuildPacaya(
 ) (*txmgr.TxCandidate, error) {
 	// ABI encode the TaikoWrapper.proposeBatch / ProverSet.proposeBatch parameters.
 	var (
-		to            = &b.taikoWrapperAddress
+		to            = &b.taikoInboxAddress
 		proposer      = crypto.PubkeyToAddress(b.proposerPrivateKey.PublicKey)
 		data          []byte
 		blobs         []*eth.Blob
