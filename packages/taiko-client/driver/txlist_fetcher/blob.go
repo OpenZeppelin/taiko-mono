@@ -55,8 +55,6 @@ func (d *BlobFetcher) FetchPacaya(
 	}
 
 	var b []byte
-	a := convertToHashes(meta.Attributes().BlobRef.Blobhashes)
-	log.Info("a", "a", a)
 	// Fetch the L1 block sidecars.
 	sidecars, err := d.dataSource.GetBlobs(
 		ctx,
@@ -102,5 +100,7 @@ func (d *BlobFetcher) FetchPacaya(
 		return nil, pkg.ErrSidecarNotFound
 	}
 
-	return sliceTxList(meta.Header().Id, b, 0, uint32(len(meta.Attributes().BlobRef.Blobhashes)))
+	// TODO: Get the correct slice we ignore for and assume we use the entire blob
+	return b, nil
+	// return sliceTxList(meta.Header().Id, b, 0, uint32(len(meta.Attributes().BlobRef.Blobhashes)))
 }
