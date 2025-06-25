@@ -12,6 +12,8 @@ import (
 
 	// "github.com/ethereum/go-ethereum/crypto"
 
+	// "github.com/ethereum/go-ethereum/log"
+
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/encoding"
 	// pacayaBindings "github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/pacaya"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/pkg/config"
@@ -113,6 +115,9 @@ func (b *BlobTransactionBuilder) BuildPacaya(
 	if blobs, err = b.splitToBlobs(txListsBytes); err != nil {
 		return nil, err
 	}
+
+	// str := blobs[0].String()
+	// log.Info("blobs", "blobs", str)
 
 	// params := &encoding.BatchParams{
 	// 	Proposer:                 proposer,
