@@ -271,9 +271,9 @@ func (p *Proposer) ProposeOp(ctx context.Context) error {
 	// }
 
 	// Wait until L2 execution engine is synced at first.
-	if err := p.rpc.WaitTillL2ExecutionEngineSynced(ctx); err != nil {
-		return fmt.Errorf("failed to wait until L2 execution engine synced: %w", err)
-	}
+	// if err := p.rpc.WaitTillL2ExecutionEngineSynced(ctx); err != nil {
+	// 	return fmt.Errorf("failed to wait until L2 execution engine synced: %w", err)
+	// }
 
 	// Check whether it's time to allow proposing empty pool content, if the `--epoch.minProposingInterval` flag is set.
 	allowEmptyPoolContent := time.Now().After(p.lastProposedAt.Add(p.MinProposingInternal))

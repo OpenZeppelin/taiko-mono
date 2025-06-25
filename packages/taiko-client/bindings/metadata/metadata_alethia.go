@@ -1,14 +1,20 @@
 package metadata
 
 import (
+	// "encoding/hex"
+	// "encoding/hex"
+	"fmt"
 	"math/big"
+	"reflect"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
+	// "github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/minimal"
 	minimalBindings "github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/minimal"
+
+	"github.com/ethereum/go-ethereum/accounts/abi"
 
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -28,30 +34,61 @@ type TaikoDataPublicationAlethia struct {
 // from the TaikoInbox.Published event.
 func NewTaikoDataBlockMetadataAlethia(e *minimalBindings.IInboxPublished) *TaikoDataPublicationAlethia {
 
-	// var metadata minimal.IInboxPublicationMetadata
-	// var blobRef minimal.IBlobRegistryBlobRef
+	if len(e.Attributes) >= 2 {
+		MetadataComponents := []abi.ArgumentMarshaling{
+			{Name: "anchorBlockId", Type: "uint64"},
+			{Name: "anchorBlockHash", Type: "bytes32"},
+			{Name: "isDelayedInclusion", Type: "bool"},
+		}
+		PublicationMetadataType, err := abi.NewType("tuple(uint256,bytes32,bool)", "IInbox.PublicationMetadata", MetadataComponents)
+		if err != nil {
+			log.Info("NewType", "err", err)
+		}
 
-	// if len(e.Attributes) >= 2 {
-	// 	if err := abi.UnpackIntoInterface(&metadata, "Metadata", e.Attributes[0]); err != nil {
-	// 		panic(fmt.Sprintf("failed to decode Metadata: %v", err))
-	// 	}
-	// 	if err := abi.UnpackIntoInterface(&blobRef, "BlobRef", e.Attributes[1]); err != nil {
-	// 		panic(fmt.Sprintf("failed to decode BlobRef: %v", err))
-	// 	}
-	// }
-	//
-	// attr := &TaikoPublicationAttributesAlethia{
-	// 	metadata: metadata,
-	// 	blobRef:  blobRef,
-	// }
-	// abi.UnpackRevert(attr, "Metadata")
-	//
-	// e.Attributes[0]
-	ab, err := abi.UnpackRevert(e.Attributes[0])
-	if err != nil {
-		panic(err)
+		PublicationMetadataArg := abi.Arguments{
+			{Name: "IInbox.PublicationMetadata", Type: PublicationMetadataType},
+		}
+
+		decodedPublicationMetadataStruct, err := PublicationMetadataArg.Unpack(e.Attributes[0])
+		if err != nil {
+			log.Info("Unpack", "err", err)
+		}
+		log.Info("decodedPublicationMetadataStruct", "decodedPublicationMetadataStruct", decodedPublicationMetadataStruct)
+
+		BlobRefComponents := []abi.ArgumentMarshaling{
+			{Name: "blockNumber", Type: "uint256"},
+			{Name: "blobhashes", Type: "bytes32[]"},
+		}
+		BlobRefType, err := abi.NewType("tuple", "IInbox.BlobRef", BlobRefComponents)
+		if err != nil {
+			log.Info("NewType", "err", err)
+		}
+
+		BlobRefArg := abi.Arguments{
+			{Name: "IInbox.BlobRef", Type: BlobRefType},
+		}
+
+		blob, err := BlobRefArg.Unpack(e.Attributes[1])
+		if err != nil {
+			log.Info("Unpack", "err", err)
+		}
+		fmt.Println("blob", blob[0])
+
+		// metadata := TaikoPublicationAttributesAlethia {
+		// 	metadata: decodedPublicationMetadataStruct.(minimal.IInboxPublicationMetadata),
+		// 	blobRef: TaikoBlobRef {
+		// 		BlockNumber: decodedBlobRefStruct.(struct {
+		// 			BlockNumber *big.Int
+		// 		}).BlockNumber,
+		// 		BlobHashes: decodedBlobRefStruct.(struct {
+		// 			BlobHashes []common.Hash
+		// 		}).BlobHashes,
+		// 	},
+
+		//
+		// }
+
 	}
-	log.Info("unpacked", "attr", ab)
 
 	return &TaikoDataPublicationAlethia{
 		header: e.Header,
@@ -60,6 +97,15 @@ func NewTaikoDataBlockMetadataAlethia(e *minimalBindings.IInboxPublished) *Taiko
 		attributesHash:  e.Header.AttributesHash,
 		Log:             e.Raw,
 	}
+}
+
+// helper to must-parse ABI types
+func mustType(str string) abi.Type {
+	t, err := abi.NewType(str, "", nil)
+	if err != nil {
+		panic(err)
+	}
+	return t
 }
 
 func (t *TaikoDataPublicationAlethia) Header() minimal.IInboxPublicationHeader {

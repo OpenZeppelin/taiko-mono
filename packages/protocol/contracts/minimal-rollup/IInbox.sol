@@ -23,6 +23,8 @@ interface IInbox {
     /// @param attributes The data contained within the publication
     event Published(bytes32 indexed pubHash, PublicationHeader header, bytes[] attributes);
 
+    function NotImplemented(PublicationMetadata memory meta) external;
+
     /// @notice Publish blobs with anchor block information
     /// @param nBlobs Number of blobs to publish
     /// @param anchorBlockId The anchor block ID

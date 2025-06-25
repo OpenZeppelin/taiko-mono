@@ -3,16 +3,17 @@ package builder
 import (
 	"context"
 	"crypto/ecdsa"
-	// "math/big"
+	"math/big"
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
+
+	// "github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/encoding"
-	pacayaBindings "github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/pacaya"
+	// pacayaBindings "github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/pacaya"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/pkg/config"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/pkg/rpc"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/pkg/utils"
@@ -69,20 +70,20 @@ func (b *BlobTransactionBuilder) BuildPacaya(
 ) (*txmgr.TxCandidate, error) {
 	// ABI encode the TaikoWrapper.proposeBatch / ProverSet.proposeBatch parameters.
 	var (
-		to            = &b.taikoInboxAddress
-		proposer      = crypto.PubkeyToAddress(b.proposerPrivateKey.PublicKey)
-		data          []byte
-		blobs         []*eth.Blob
-		encodedParams []byte
-		blockParams   []pacayaBindings.ITaikoInboxBlockParams
+		to = &b.taikoInboxAddress
+		// proposer      = crypto.PubkeyToAddress(b.proposerPrivateKey.PublicKey)
+		data  []byte
+		blobs []*eth.Blob
+		// encodedParams []byte
+		// blockParams []pacayaBindings.ITaikoInboxBlockParams
 		// forcedInclusionParams *encoding.BatchParams
 		allTxs types.Transactions
 	)
 
-	if b.proverSetAddress != rpc.ZeroAddress {
-		to = &b.proverSetAddress
-		proposer = b.proverSetAddress
-	}
+	// if b.proverSetAddress != rpc.ZeroAddress {
+	// 	to = &b.proverSetAddress
+	// 	proposer = b.proverSetAddress
+	// }
 
 	// if forcedInclusion != nil {
 	// 	blobParams, blockParams := buildParamsForForcedInclusion(forcedInclusion, minTxsPerForcedInclusion)
@@ -97,11 +98,11 @@ func (b *BlobTransactionBuilder) BuildPacaya(
 
 	for _, txs := range txBatch {
 		allTxs = append(allTxs, txs...)
-		blockParams = append(blockParams, pacayaBindings.ITaikoInboxBlockParams{
-			NumTransactions: uint16(len(txs)),
-			TimeShift:       0,
-			SignalSlots:     make([][32]byte, 0),
-		})
+		// blockParams = append(blockParams, pacayaBindings.ITaikoInboxBlockParams{
+		// 	NumTransactions: uint16(len(txs)),
+		// 	TimeShift:       0,
+		// 	SignalSlots:     make([][32]byte, 0),
+		// })
 	}
 
 	txListsBytes, err := utils.EncodeAndCompressTxList(allTxs)
@@ -113,40 +114,44 @@ func (b *BlobTransactionBuilder) BuildPacaya(
 		return nil, err
 	}
 
-	params := &encoding.BatchParams{
-		Proposer:                 proposer,
-		Coinbase:                 b.l2SuggestedFeeRecipient,
-		RevertIfNotFirstProposal: b.revertProtectionEnabled,
-		BlobParams: encoding.BlobParams{
-			BlobHashes:     [][32]byte{},
-			FirstBlobIndex: 0,
-			NumBlobs:       uint8(len(blobs)),
-			ByteOffset:     0,
-			ByteSize:       uint32(len(txListsBytes)),
-		},
-		Blocks: blockParams,
-	}
+	// params := &encoding.BatchParams{
+	// 	Proposer:                 proposer,
+	// 	Coinbase:                 b.l2SuggestedFeeRecipient,
+	// 	RevertIfNotFirstProposal: b.revertProtectionEnabled,
+	// 	BlobParams: encoding.BlobParams{
+	// 		BlobHashes:     [][32]byte{},
+	// 		FirstBlobIndex: 0,
+	// 		NumBlobs:       uint8(len(blobs)),
+	// 		ByteOffset:     0,
+	// 		ByteSize:       uint32(len(txListsBytes)),
+	// 	},
+	// 	Blocks: blockParams,
+	// }
 
-	if b.revertProtectionEnabled {
-		// if forcedInclusionParams != nil {
-		// 	forcedInclusionParams.ParentMetaHash = parentMetahash
-		// } else {
-		params.ParentMetaHash = parentMetahash
-		// }
-	}
+	// if b.revertProtectionEnabled {
+	// if forcedInclusionParams != nil {
+	// 	forcedInclusionParams.ParentMetaHash = parentMetahash
+	// } else {
+	// params.ParentMetaHash = parentMetahash
+	// }
+	// }
 
 	// if encodedParams, err = encoding.EncodeBatchParamsWithForcedInclusion(forcedInclusionParams, params); err != nil {
 	// 	return nil, err
 	// }
 
-	if b.proverSetAddress != rpc.ZeroAddress {
-		if data, err = encoding.ProverSetPacayaABI.Pack("proposeBatch", encodedParams, []byte{}); err != nil {
-			return nil, err
-		}
-	} else {
-		if data, err = encoding.TaikoWrapperABI.Pack("proposeBatch", encodedParams, []byte{}); err != nil {
-			return nil, err
-		}
+	// if b.proverSetAddress != rpc.ZeroAddress {
+	// 	if data, err = encoding.ProverSetPacayaABI.Pack("proposeBatch", encodedParams, []byte{}); err != nil {
+	// 		return nil, err
+	// 	}
+	// } else {
+	// 	if data, err = encoding.TaikoWrapperABI.Pack("proposeBatch", encodedParams, []byte{}); err != nil {
+	// 		return nil, err
+	// 	}
+	// }
+
+	if data, err = encoding.TaikoInboxAlethiaABI.Pack("publish", new(big.Int).SetUint64(uint64(len(blobs))), uint64(0)); err != nil {
+		return nil, err
 	}
 
 	return &txmgr.TxCandidate{

@@ -45,11 +45,11 @@ func (d DummyProtocolConfigs) BlockMaxGasLimit() uint32 {
 }
 
 func (d DummyProtocolConfigs) ForkHeightsOntake() uint64 {
-	return 123456
+	return 0
 }
 
 func (d DummyProtocolConfigs) ForkHeightsPacaya() uint64 {
-	return 654321
+	return 0
 }
 
 func (d DummyProtocolConfigs) LivenessBond() *big.Int {
@@ -241,7 +241,7 @@ func (c *Client) WaitTillL2ExecutionEngineSynced(ctx context.Context) error {
 
 			if progress.IsSyncing() {
 				log.Info(
-					"L2 execution engine is syncing",
+					"L2 execution engine is not hehe syncing",
 					"currentBlockID", progress.CurrentBlockID,
 					"highestBlockID", progress.HighestBlockID,
 					"progress", progress.SyncProgress,
@@ -884,10 +884,12 @@ func (c *Client) calculateBaseFeePacaya() (*big.Int, error) {
 		"Calculate base fee for the alethia block",
 	)
 
-	baseFee, err := c.MinimalRollupClients.TaikoAnchor.GetBaseFee(nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to calculate alethia block base fee byGetBaseFee: %w", err)
-	}
+	// TODO: Need to deploy taiko anchor contract on testnet
+	// baseFee, err := c.MinimalRollupClients.TaikoAnchor.GetBaseFee(nil)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to calculate alethia block base fee byGetBaseFee: %w", err)
+	// }
+	baseFee := big.NewInt(1)
 
 	return baseFee, nil
 }

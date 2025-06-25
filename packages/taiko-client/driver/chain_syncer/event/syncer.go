@@ -11,14 +11,16 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/metadata"
-	pacayaBindings "github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/pacaya"
+
+	// pacayaBindings "github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/pacaya"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/chain_syncer/beaconsync"
 	blocksInserter "github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/chain_syncer/event/blocks_inserter"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/state"
+
 	// "github.com/taikoxyz/taiko-mono/packages/taiko-client/internal/metrics"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/pkg/rpc"
 
-	minimalBindings "github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/minimal"
+	// minimalBindings "github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/minimal"
 	anchorTxConstructor "github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/anchor_tx_constructor"
 	txListDecompressor "github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/txlist_decompressor"
 	txlistFetcher "github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/txlist_fetcher"
@@ -334,27 +336,20 @@ func (s *Syncer) onPublished(
 	// I suspect some things might fail down the line if we don't do this
 
 	//*************************************************************************
-	// tx, isPending, err := s.rpc.L1.TransactionByHash(ctx, meta.GetTxHash())
-	// if err != nil {
-	// 	return fmt.Errorf("failed to fetch transaction by hash: %w", err)
-	// }
-	// h := len(tx.BlobTxSidecar().Blobs)
-	// fmt.Println(h)
+	tx, _, err := s.rpc.L1.TransactionByHash(ctx, meta.GetTxHash())
+	if err != nil {
+		return fmt.Errorf("failed to fetch transaction by hash: %w", err)
+	}
+	h := len(tx.BlobTxSidecar().Blobs)
+	fmt.Println(h)
 
-	// // Fetch the transaction to get the blob hash
-	// tx, isPending, err := s.rpc.L1.TransactionByHash(ctx, meta.GetTxHash())
-	// if err != nil {
-	// 	return fmt.Errorf("failed to fetch transaction by hash: %w", err)
-	// }
-	//
-	// // Extract blob hashes from the transaction
-	// var blobHashes []common.Hash
-	// if tx.Type() == 3 { // EIP-4844 blob transaction
-	// 	blobHashes = tx.BlobHashes()
-	// 	log.Info("Found blob transaction", "txHash", tx.Hash(), "blobHashes", blobHashes)
-	// } else {
-	// 	log.Info("Transaction is not a blob transaction", "txHash", tx.Hash(), "txType", tx.Type())
-	// }
+	var blobHashes []common.Hash
+	if tx.Type() == 3 { // EIP-4844 blob transaction
+		blobHashes = tx.BlobHashes()
+		log.Info("Found blob transaction", "txHash", tx.Hash(), "blobHashes", blobHashes)
+	} else {
+		log.Info("Transaction is not a blob transaction", "txHash", tx.Hash(), "txType", tx.Type())
+	}
 	//
 	// // Create a placeholder metadata object from the Published event
 	// meta := &placeholderPacayaMetadata{
@@ -513,146 +508,147 @@ func (s *Syncer) BlocksInserterPacaya() *blocksInserter.BlocksInserterPacaya {
 	return s.blocksInserterPacaya.(*blocksInserter.BlocksInserterPacaya)
 }
 
-// placeholderPacayaMetadata is a placeholder implementation of TaikoBatchMetaDataPacaya
-type placeholderPacayaMetadata struct {
-	event      *minimalBindings.IInboxPublished
-	blockID    *big.Int
-	endIter    eventIterator.EndPublishedEventIterFunc
-	blobHashes []common.Hash
-	blocks     []pacayaBindings.ITaikoInboxBlockParams
-}
-
-// Implement the TaikoBatchMetaDataPacaya interface methods
-func (m *placeholderPacayaMetadata) GetTxListHash() common.Hash {
-	return m.event.Raw.TxHash
-}
-
-func (m *placeholderPacayaMetadata) GetExtraData() []byte {
-	return []byte{}
-}
-
-func (m *placeholderPacayaMetadata) GetCoinbase() common.Address {
-	return common.Address{}
-}
-
-func (m *placeholderPacayaMetadata) GetBatchID() *big.Int {
-	return m.blockID
-}
-
-func (m *placeholderPacayaMetadata) GetGasLimit() uint32 {
-	return 30000000 // Default gas limit
-}
-
-func (m *placeholderPacayaMetadata) GetLastBlockTimestamp() uint64 {
-	return m.event.Header.Timestamp.Uint64()
-}
-
-func (m *placeholderPacayaMetadata) GetProposer() common.Address {
-	return common.Address{}
-}
-
-func (m *placeholderPacayaMetadata) GetProposedAt() uint64 {
-	return m.event.Raw.BlockNumber
-}
-
-func (m *placeholderPacayaMetadata) GetProposedIn() uint64 {
-	return m.event.Raw.BlockNumber
-}
-
-func (m *placeholderPacayaMetadata) GetBlobCreatedIn() *big.Int {
-	return new(big.Int).SetUint64(m.event.Raw.BlockNumber)
-}
-
-func (m *placeholderPacayaMetadata) GetTxListOffset() uint32 {
-	return 0
-}
-
-func (m *placeholderPacayaMetadata) GetTxListSize() uint32 {
-	return 0
-}
-
-func (m *placeholderPacayaMetadata) GetLastBlockID() uint64 {
-	return m.blockID.Uint64()
-}
-
-func (m *placeholderPacayaMetadata) GetBlobHashes() []common.Hash {
-	return m.blobHashes
-}
-
-func (m *placeholderPacayaMetadata) GetAnchorBlockID() uint64 {
-	return m.event.Raw.BlockNumber
-}
-
-func (m *placeholderPacayaMetadata) GetAnchorBlockHash() common.Hash {
-	return m.event.Raw.BlockHash
-}
-
-func (m *placeholderPacayaMetadata) GetBlocks() []pacayaBindings.ITaikoInboxBlockParams {
-	return m.blocks
-}
-
-func (m *placeholderPacayaMetadata) GetBaseFeeConfig() *pacayaBindings.LibSharedDataBaseFeeConfig {
-	return &pacayaBindings.LibSharedDataBaseFeeConfig{}
-}
-
-func (m *placeholderPacayaMetadata) GetRawBlockHeight() *big.Int {
-	return new(big.Int).SetUint64(m.event.Raw.BlockNumber)
-}
-
-func (m *placeholderPacayaMetadata) GetRawBlockHash() common.Hash {
-	return m.event.Raw.BlockHash
-}
-
-func (m *placeholderPacayaMetadata) GetTxIndex() uint {
-	return m.event.Raw.TxIndex
-}
-
-func (m *placeholderPacayaMetadata) GetTxHash() common.Hash {
-	return m.event.Raw.TxHash
-}
-
-func (m *placeholderPacayaMetadata) InnerMetadata() *pacayaBindings.ITaikoInboxBatchMetadata {
-	return &pacayaBindings.ITaikoInboxBatchMetadata{}
-}
-
-// placeholderProposalMetadata is a placeholder implementation of TaikoProposalMetaData
-type placeholderProposalMetadata struct {
-	pacayaMeta *placeholderPacayaMetadata
-}
-
-// Implement the TaikoProposalMetaData interface methods
-func (m *placeholderProposalMetadata) Pacaya() metadata.TaikoBatchMetaDataPacaya {
-	return m.pacayaMeta
-}
-
-func (m *placeholderProposalMetadata) IsPacaya() bool {
-	return true
-}
-
-func (m *placeholderProposalMetadata) GetRawBlockHeight() *big.Int {
-	return m.pacayaMeta.GetRawBlockHeight()
-}
-
-func (m *placeholderProposalMetadata) GetRawBlockHash() common.Hash {
-	return m.pacayaMeta.GetRawBlockHash()
-}
-
-func (m *placeholderProposalMetadata) GetTxIndex() uint {
-	return m.pacayaMeta.GetTxIndex()
-}
-
-func (m *placeholderProposalMetadata) GetTxHash() common.Hash {
-	return m.pacayaMeta.GetTxHash()
-}
-
-func (m *placeholderProposalMetadata) GetProposer() common.Address {
-	return m.pacayaMeta.GetProposer()
-}
-
-func (m *placeholderProposalMetadata) GetCoinbase() common.Address {
-	return m.pacayaMeta.GetCoinbase()
-}
-
-func (m *placeholderProposalMetadata) GetBlobCreatedIn() *big.Int {
-	return m.pacayaMeta.GetBlobCreatedIn()
-}
+//
+// // placeholderPacayaMetadata is a placeholder implementation of TaikoBatchMetaDataPacaya
+// type placeholderPacayaMetadata struct {
+// 	event      *minimalBindings.IInboxPublished
+// 	blockID    *big.Int
+// 	endIter    eventIterator.EndPublishedEventIterFunc
+// 	blobHashes []common.Hash
+// 	blocks     []pacayaBindings.ITaikoInboxBlockParams
+// }
+//
+// // Implement the TaikoBatchMetaDataPacaya interface methods
+// func (m *placeholderPacayaMetadata) GetTxListHash() common.Hash {
+// 	return m.event.Raw.TxHash
+// }
+//
+// func (m *placeholderPacayaMetadata) GetExtraData() []byte {
+// 	return []byte{}
+// }
+//
+// func (m *placeholderPacayaMetadata) GetCoinbase() common.Address {
+// 	return common.Address{}
+// }
+//
+// func (m *placeholderPacayaMetadata) GetBatchID() *big.Int {
+// 	return m.blockID
+// }
+//
+// func (m *placeholderPacayaMetadata) GetGasLimit() uint32 {
+// 	return 30000000 // Default gas limit
+// }
+//
+// func (m *placeholderPacayaMetadata) GetLastBlockTimestamp() uint64 {
+// 	return m.event.Header.Timestamp.Uint64()
+// }
+//
+// func (m *placeholderPacayaMetadata) GetProposer() common.Address {
+// 	return common.Address{}
+// }
+//
+// func (m *placeholderPacayaMetadata) GetProposedAt() uint64 {
+// 	return m.event.Raw.BlockNumber
+// }
+//
+// func (m *placeholderPacayaMetadata) GetProposedIn() uint64 {
+// 	return m.event.Raw.BlockNumber
+// }
+//
+// func (m *placeholderPacayaMetadata) GetBlobCreatedIn() *big.Int {
+// 	return new(big.Int).SetUint64(m.event.Raw.BlockNumber)
+// }
+//
+// func (m *placeholderPacayaMetadata) GetTxListOffset() uint32 {
+// 	return 0
+// }
+//
+// func (m *placeholderPacayaMetadata) GetTxListSize() uint32 {
+// 	return 0
+// }
+//
+// func (m *placeholderPacayaMetadata) GetLastBlockID() uint64 {
+// 	return m.blockID.Uint64()
+// }
+//
+// func (m *placeholderPacayaMetadata) GetBlobHashes() []common.Hash {
+// 	return m.blobHashes
+// }
+//
+// func (m *placeholderPacayaMetadata) GetAnchorBlockID() uint64 {
+// 	return m.event.Raw.BlockNumber
+// }
+//
+// func (m *placeholderPacayaMetadata) GetAnchorBlockHash() common.Hash {
+// 	return m.event.Raw.BlockHash
+// }
+//
+// func (m *placeholderPacayaMetadata) GetBlocks() []pacayaBindings.ITaikoInboxBlockParams {
+// 	return m.blocks
+// }
+//
+// func (m *placeholderPacayaMetadata) GetBaseFeeConfig() *pacayaBindings.LibSharedDataBaseFeeConfig {
+// 	return &pacayaBindings.LibSharedDataBaseFeeConfig{}
+// }
+//
+// func (m *placeholderPacayaMetadata) GetRawBlockHeight() *big.Int {
+// 	return new(big.Int).SetUint64(m.event.Raw.BlockNumber)
+// }
+//
+// func (m *placeholderPacayaMetadata) GetRawBlockHash() common.Hash {
+// 	return m.event.Raw.BlockHash
+// }
+//
+// func (m *placeholderPacayaMetadata) GetTxIndex() uint {
+// 	return m.event.Raw.TxIndex
+// }
+//
+// func (m *placeholderPacayaMetadata) GetTxHash() common.Hash {
+// 	return m.event.Raw.TxHash
+// }
+//
+// func (m *placeholderPacayaMetadata) InnerMetadata() *pacayaBindings.ITaikoInboxBatchMetadata {
+// 	return &pacayaBindings.ITaikoInboxBatchMetadata{}
+// }
+//
+// // placeholderProposalMetadata is a placeholder implementation of TaikoProposalMetaData
+// type placeholderProposalMetadata struct {
+// 	pacayaMeta *placeholderPacayaMetadata
+// }
+//
+// // Implement the TaikoProposalMetaData interface methods
+// func (m *placeholderProposalMetadata) Pacaya() metadata.TaikoBatchMetaDataPacaya {
+// 	return m.pacayaMeta
+// }
+//
+// func (m *placeholderProposalMetadata) IsPacaya() bool {
+// 	return true
+// }
+//
+// func (m *placeholderProposalMetadata) GetRawBlockHeight() *big.Int {
+// 	return m.pacayaMeta.GetRawBlockHeight()
+// }
+//
+// func (m *placeholderProposalMetadata) GetRawBlockHash() common.Hash {
+// 	return m.pacayaMeta.GetRawBlockHash()
+// }
+//
+// func (m *placeholderProposalMetadata) GetTxIndex() uint {
+// 	return m.pacayaMeta.GetTxIndex()
+// }
+//
+// func (m *placeholderProposalMetadata) GetTxHash() common.Hash {
+// 	return m.pacayaMeta.GetTxHash()
+// }
+//
+// func (m *placeholderProposalMetadata) GetProposer() common.Address {
+// 	return m.pacayaMeta.GetProposer()
+// }
+//
+// func (m *placeholderProposalMetadata) GetCoinbase() common.Address {
+// 	return m.pacayaMeta.GetCoinbase()
+// }
+//
+// func (m *placeholderProposalMetadata) GetBlobCreatedIn() *big.Int {
+// 	return m.pacayaMeta.GetBlobCreatedIn()
+// }

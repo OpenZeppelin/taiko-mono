@@ -71,5 +71,5 @@ type TaikoPublicationAttributesAlethia interface {
 
 type TaikoBlobRef struct {
 	BlockNumber *big.Int
-	BlobHashes  []common.Hash
+	BlobHashes  [][32]uint8
 }

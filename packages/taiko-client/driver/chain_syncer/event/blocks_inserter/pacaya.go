@@ -69,19 +69,17 @@ func (i *BlocksInserterPacaya) InsertBlocks(
 	// i.mutex.Lock()
 	// defer i.mutex.Unlock()
 	//
-	// var (
-	// 	// meta        = metadata.Pacaya()
-	// 	txListBytes []byte
-	// )
+	var (
+		// 	// meta        = metadata.Pacaya()
+		txListBytes []byte
+	)
 	//
 	// var publicationId = meta.Header().Id.Uint64()
 	//
-	// // Fetch transactions list.
-	// if len(meta.Attributes().BlobRef().BlobHashes) != 0 {
-	// 	if txListBytes, err = i.blobFetcher.FetchPacaya(ctx, meta); err != nil {
-	// 		return fmt.Errorf("failed to fetch tx list from blob: %w", err)
-	// 	}
-	// }
+	// Fetch transactions list.
+	if txListBytes, err = i.blobFetcher.FetchPacaya(ctx, meta); err != nil {
+		return fmt.Errorf("failed to fetch tx list from blob: %w", err)
+	}
 	// NOTE: We dont use calldata fetch for Alethia
 	// else {
 	// 	if txListBytes, err = i.calldataFetcher.FetchPacaya(ctx, meta); err != nil {
@@ -89,12 +87,12 @@ func (i *BlocksInserterPacaya) InsertBlocks(
 	// 	}
 	// }
 
-	// var (
-	// 	allTxs          = i.txListDecompressor.TryDecompress(i.rpc.L2.ChainID, txListBytes, len(meta.Attributes().BlobRef().BlobHashes) != 0)
-	// 	parent          *types.Header
-	// 	lastPayloadData *engine.ExecutableData
-	// )
-	// log.Info("allTxs", "txs", allTxs)
+	var (
+		allTxs = i.txListDecompressor.TryDecompress(i.rpc.L2.ChainID, txListBytes, true)
+		// parent          *types.Header
+		// lastPayloadData *engine.ExecutableData
+	)
+	log.Info("allTxs", "txs", allTxs)
 
 	// for j := range meta.GetBlocks() {
 	// 	// Fetch the L2 parent block, if the node is just finished a P2P sync, we simply use the tracker's

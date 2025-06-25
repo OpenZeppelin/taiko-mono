@@ -39,20 +39,16 @@ type IInboxPublicationHeader struct {
 	AttributesHash [32]byte
 }
 
+// IInboxPublicationMetadata is an auto generated low-level Go binding around an user-defined struct.
 type IInboxPublicationMetadata struct {
-	AnchorBlockId *big.Int
-	AnchorBlockHash common.Hash
+	AnchorBlockId      *big.Int
+	AnchorBlockHash    [32]byte
 	IsDelayedInclusion bool
-}
-
-type IBlobRegistryBlobRef struct  {
-	blockNumber *big.Int
-	blobhashes [][32]byte
 }
 
 // IInboxMetaData contains all meta data concerning the IInbox contract.
 var IInboxMetaData = &bind.MetaData{
-	ABI: "[{\"type\":\"function\",\"name\":\"getNextPublicationId\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getPublicationHash\",\"inputs\":[{\"name\":\"idx\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"publish\",\"inputs\":[{\"name\":\"nBlobs\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"anchorBlockId\",\"type\":\"uint64\",\"internalType\":\"uint64\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"validateHeader\",\"inputs\":[{\"name\":\"header\",\"type\":\"tuple\",\"internalType\":\"structIInbox.PublicationHeader\",\"components\":[{\"name\":\"id\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"prevHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"publisher\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"timestamp\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"blockNumber\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"attributesHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}]}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"event\",\"name\":\"Published\",\"inputs\":[{\"name\":\"pubHash\",\"type\":\"bytes32\",\"indexed\":true,\"internalType\":\"bytes32\"},{\"name\":\"header\",\"type\":\"tuple\",\"indexed\":false,\"internalType\":\"structIInbox.PublicationHeader\",\"components\":[{\"name\":\"id\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"prevHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"publisher\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"timestamp\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"blockNumber\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"attributesHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}]},{\"name\":\"attributes\",\"type\":\"bytes[]\",\"indexed\":false,\"internalType\":\"bytes[]\"}],\"anonymous\":false}]",
+	ABI: "[{\"type\":\"function\",\"name\":\"NotImplemented\",\"inputs\":[{\"name\":\"meta\",\"type\":\"tuple\",\"internalType\":\"structIInbox.PublicationMetadata\",\"components\":[{\"name\":\"anchorBlockId\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"anchorBlockHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"isDelayedInclusion\",\"type\":\"bool\",\"internalType\":\"bool\"}]}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"getNextPublicationId\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"getPublicationHash\",\"inputs\":[{\"name\":\"idx\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"publish\",\"inputs\":[{\"name\":\"nBlobs\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"anchorBlockId\",\"type\":\"uint64\",\"internalType\":\"uint64\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"validateHeader\",\"inputs\":[{\"name\":\"header\",\"type\":\"tuple\",\"internalType\":\"structIInbox.PublicationHeader\",\"components\":[{\"name\":\"id\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"prevHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"publisher\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"timestamp\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"blockNumber\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"attributesHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}]}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"event\",\"name\":\"Published\",\"inputs\":[{\"name\":\"pubHash\",\"type\":\"bytes32\",\"indexed\":true,\"internalType\":\"bytes32\"},{\"name\":\"header\",\"type\":\"tuple\",\"indexed\":false,\"internalType\":\"structIInbox.PublicationHeader\",\"components\":[{\"name\":\"id\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"prevHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"publisher\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"timestamp\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"blockNumber\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"attributesHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}]},{\"name\":\"attributes\",\"type\":\"bytes[]\",\"indexed\":false,\"internalType\":\"bytes[]\"}],\"anonymous\":false}]",
 }
 
 // IInboxABI is the input ABI used to generate the binding from.
@@ -292,6 +288,27 @@ func (_IInbox *IInboxSession) ValidateHeader(header IInboxPublicationHeader) (bo
 // Solidity: function validateHeader((uint256,bytes32,address,uint256,uint256,bytes32) header) view returns(bool)
 func (_IInbox *IInboxCallerSession) ValidateHeader(header IInboxPublicationHeader) (bool, error) {
 	return _IInbox.Contract.ValidateHeader(&_IInbox.CallOpts, header)
+}
+
+// NotImplemented is a paid mutator transaction binding the contract method 0xd18f2f75.
+//
+// Solidity: function NotImplemented((uint256,bytes32,bool) meta) returns()
+func (_IInbox *IInboxTransactor) NotImplemented(opts *bind.TransactOpts, meta IInboxPublicationMetadata) (*types.Transaction, error) {
+	return _IInbox.contract.Transact(opts, "NotImplemented", meta)
+}
+
+// NotImplemented is a paid mutator transaction binding the contract method 0xd18f2f75.
+//
+// Solidity: function NotImplemented((uint256,bytes32,bool) meta) returns()
+func (_IInbox *IInboxSession) NotImplemented(meta IInboxPublicationMetadata) (*types.Transaction, error) {
+	return _IInbox.Contract.NotImplemented(&_IInbox.TransactOpts, meta)
+}
+
+// NotImplemented is a paid mutator transaction binding the contract method 0xd18f2f75.
+//
+// Solidity: function NotImplemented((uint256,bytes32,bool) meta) returns()
+func (_IInbox *IInboxTransactorSession) NotImplemented(meta IInboxPublicationMetadata) (*types.Transaction, error) {
+	return _IInbox.Contract.NotImplemented(&_IInbox.TransactOpts, meta)
 }
 
 // Publish is a paid mutator transaction binding the contract method 0x4039cc61.

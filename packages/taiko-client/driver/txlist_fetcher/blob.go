@@ -48,7 +48,7 @@ func (d *BlobFetcher) FetchPacaya(
 	// 	return nil, err
 	// }
 	//
-	// var b []byte
+	var b []byte
 	// // Fetch the L1 block sidecars.
 	// sidecars, err := d.dataSource.GetBlobs(
 	// 	ctx,
@@ -95,6 +95,5 @@ func (d *BlobFetcher) FetchPacaya(
 	// 	return nil, pkg.ErrSidecarNotFound
 	// }
 
-	// return sliceTxList(meta.GetBatchID(), b, meta.GetTxListOffset(), meta.GetTxListSize())
-	return nil, nil
+	return sliceTxList(meta.Header().Id, b, 0, 32)
 }
