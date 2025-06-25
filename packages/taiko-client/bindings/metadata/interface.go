@@ -64,12 +64,12 @@ type TaikoPublicationData interface {
 	// GetLastBlockTimestamp() uint64
 }
 
-type TaikoPublicationAttributesAlethia interface {
-	Metadata() minimal.IInboxPublicationMetadata
-	BlobRef() TaikoBlobRef
+type TaikoPublicationAttributesAlethia struct {
+	Metadata minimal.IInboxPublicationMetadata
+	BlobRef  BlobRef
 }
 
-type TaikoBlobRef struct {
-	BlockNumber *big.Int
-	BlobHashes  [][32]uint8
+type BlobRef struct {
+	BlockNumber *big.Int    `json:"blockNumber"` // uint256 → *big.Int
+	Blobhashes  [][32]uint8 `json:"blobhashes"`  // bytes32[] → []common.Hash
 }

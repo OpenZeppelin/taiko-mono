@@ -31,7 +31,7 @@ func (d *BlobFetcher) FetchPacaya(
 	ctx context.Context,
 	meta metadata.TaikoPublicationData,
 ) ([]byte, error) {
-	if len(meta.Attributes().BlobRef().BlobHashes) == 0 {
+	if len(meta.Attributes().BlobRef.Blobhashes) == 0 {
 		return nil, pkg.ErrBlobUnused
 	}
 
