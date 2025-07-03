@@ -123,3 +123,10 @@ Now it is time to spin up `taiko-client`. We'll do this for `driver` mode, which
    ```sh
    cast send  0x703848F4c85f18e3acd8196c8eC91eb0b7Bd0797 "publish(uint256,uint64)" 1 100 --private-key  bcdf20249abf0ed6d944c0288fad489e33f66b3960d9e6229c1cd214ed3bbe31  --rpc-url <RPC_URL>
    ```
+
+   I recommend also starting the proposer as well, as this will truly simulate the entire flow. You can run the proposer as so:
+
+   ```sh
+   ./bin/taiko-client proposer --jwtSecret jwt.txt --l1.proposerPrivKey  bcdf20249abf0ed6d944c0288fad489e33f66b3960d9e6229c1cd214ed3bbe31 --l2.suggestedFeeRecipient 0x8943545177806ED17B9F23F0a21ee5948eCaa776
+   ```
+
