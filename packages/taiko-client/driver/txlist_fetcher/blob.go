@@ -28,14 +28,6 @@ func NewBlobTxListFetcher(cli *rpc.Client, ds *rpc.BlobDataSource) *BlobFetcher 
 	return &BlobFetcher{cli, ds}
 }
 
-func convertToHashes(data [][32]uint8) []common.Hash {
-	hashes := make([]common.Hash, len(data))
-	for i, item := range data {
-		hashes[i] = item
-	}
-	return hashes
-}
-
 // FetchPacaya implements the TxListFetcher interface.
 func (d *BlobFetcher) FetchPacaya(
 	ctx context.Context,
@@ -59,7 +51,7 @@ func (d *BlobFetcher) FetchPacaya(
 	sidecars, err := d.dataSource.GetBlobs(
 		ctx,
 		l1Header.Time,
-		convertToHashes(meta.Attributes().BlobRef.Blobhashes),
+		meta.Attributes().BlobRef.Blobhashes,
 	)
 	if err != nil {
 		return nil, err

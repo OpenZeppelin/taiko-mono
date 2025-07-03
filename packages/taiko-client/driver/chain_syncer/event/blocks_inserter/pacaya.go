@@ -16,6 +16,7 @@ import (
 	"github.com/holiman/uint256"
 
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/metadata"
+	pacayaBindings "github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/pacaya"
 	anchorTxConstructor "github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/anchor_tx_constructor"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/chain_syncer/beaconsync"
 	txListDecompressor "github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/txlist_decompressor"
@@ -88,107 +89,118 @@ func (i *BlocksInserterPacaya) InsertBlocks(
 	// }
 
 	var (
-		allTxs = i.txListDecompressor.TryDecompress(i.rpc.L2.ChainID, txListBytes, true)
-		// parent          *types.Header
-		// lastPayloadData *engine.ExecutableData
+		allTxs          = i.txListDecompressor.TryDecompress(i.rpc.L2.ChainID, txListBytes, true)
+		parent          *types.Header
+		lastPayloadData *engine.ExecutableData
 	)
 	log.Info("allTxs", "txs", allTxs)
 
-	// for j := range meta.GetBlocks() {
-	// 	// Fetch the L2 parent block, if the node is just finished a P2P sync, we simply use the tracker's
-	// 	// last synced verified block as the parent, otherwise, we fetch the parent block from L2 EE.
-	// 	if i.progressTracker.Triggered() {
-	// 		// Already synced through beacon sync, just skip this event.
-	// 		if new(big.Int).SetUint64(meta.GetLastBlockID()).Cmp(i.progressTracker.LastSyncedBlockID()) <= 0 {
-	// 			return nil
-	// 		}
-	//
-	// 		parent, err = i.rpc.L2.HeaderByHash(ctx, i.progressTracker.LastSyncedBlockHash())
-	// 	} else {
-	// 		var parentNumber *big.Int
-	// 		if lastPayloadData == nil {
-	// 			if meta.GetBatchID().Uint64() == i.rpc.MinimalRollupClients.ForkHeights.Pacaya {
-	// 				parentNumber = new(big.Int).SetUint64(meta.GetBatchID().Uint64() - 1)
-	// 			} else {
-	// 				lastBatch, err := i.rpc.GetBatchByID(ctx, new(big.Int).SetUint64(meta.GetBatchID().Uint64()-1))
-	// 				if err != nil {
-	// 					return fmt.Errorf("failed to fetch last batch (%d): %w", meta.GetBatchID().Uint64()-1, err)
-	// 				}
-	// 				parentNumber = new(big.Int).SetUint64(lastBatch.LastBlockId)
-	// 			}
-	// 		} else {
-	// 			parentNumber = new(big.Int).SetUint64(lastPayloadData.Number)
-	// 		}
-	//
-	// 		parent, err = i.rpc.L2ParentByCurrentBlockID(ctx, new(big.Int).Add(parentNumber, common.Big1))
-	// 	}
-	// 	if err != nil {
-	// 		return fmt.Errorf("failed to fetch L2 parent block: %w", err)
-	// 	}
-	//
-	// 	log.Debug(
-	// 		"Parent block",
-	// 		"blockID", parent.Number,
-	// 		"hash", parent.Hash(),
-	// 		"beaconSyncTriggered", i.progressTracker.Triggered(),
-	// 	)
+	// TODO: this should loop through 'blocks'
+	for j := range 2 {
+		// Fetch the L2 parent block, if the node is just finished a P2P sync, we simply use the tracker's
+		// last synced verified block as the parent, otherwise, we fetch the parent block from L2 EE.
+		// if i.progressTracker.Triggered() {
+		// Already synced through beacon sync, just skip this event.
+		// if new(big.Int).SetUint64(meta.GetLastBlockID()).Cmp(i.progressTracker.LastSyncedBlockID()) <= 0 {
+		// 	return nil
+		// }
 
-	// Otherwise, we need to create a new execution payload and set it as the head block in L2 EE.
-	// 	createExecutionPayloadsMetaData, anchorTx, err := assembleCreateExecutionPayloadMetaPacaya(
-	// 		ctx,
-	// 		i.rpc,
-	// 		i.anchorConstructor,
-	// 		meta,
-	// 		allTxs,
-	// 		publicationId,
-	// 		parent,
-	// 		j,
-	// 	)
-	// 	if err != nil {
-	// 		return fmt.Errorf("failed to assemble execution payload creation metadata: %w", err)
-	// 	}
-	//
-	// 	// Decompress the transactions list and try to insert a new head block to L2 EE.
-	// 	if lastPayloadData, err = createPayloadAndSetHead(
-	// 		ctx,
-	// 		i.rpc,
-	// 		&createPayloadAndSetHeadMetaData{
-	// 			createExecutionPayloadsMetaData: createExecutionPayloadsMetaData,
-	// 			AnchorBlockID:                   new(big.Int).SetUint64(meta.Attributes().Metadata().AnchorBlockId.Uint64()),
-	// 			AnchorBlockHash:                 meta.Attributes().Metadata().AnchorBlockHash,
-	// 			BaseFeeConfig:                   meta.GetBaseFeeConfig(),
-	// 			Parent:                          parent,
-	// 		},
-	// 		anchorTx,
-	// 	); err != nil {
-	// 		return fmt.Errorf("failed to insert new head to L2 execution engine: %w", err)
-	// 	}
-	//
-	// 	log.Debug("Payload data", "hash", lastPayloadData.BlockHash, "txs", len(lastPayloadData.Transactions))
-	//
-	// 	// Wait till the corresponding L2 header to be existed in the L2 EE.
-	// 	if _, err := i.rpc.WaitL2Header(ctx, new(big.Int).SetUint64(lastPayloadData.Number)); err != nil {
-	// 		return fmt.Errorf("failed to wait for L2 header (%d): %w", lastPayloadData.Number, err)
-	// 	}
-	//
-	// 	log.Info(
-	// 		"🔗 New L2 block inserted",
-	// 		"blockID", lastPayloadData.Number,
-	// 		"hash", lastPayloadData.BlockHash,
-	// 		"coinbase", lastPayloadData.FeeRecipient.Hex(),
-	// 		"transactions", len(lastPayloadData.Transactions),
-	// 		"timestamp", lastPayloadData.Timestamp,
-	// 		"baseFee", utils.WeiToGWei(lastPayloadData.BaseFeePerGas),
-	// 		"withdrawals", len(lastPayloadData.Withdrawals),
-	// 		"publication ID", meta.Header().Id,
-	// 		"gasLimit", lastPayloadData.GasLimit,
-	// 		"gasUsed", lastPayloadData.GasUsed,
-	// 		"parentHash", lastPayloadData.ParentHash,
-	// 		"indexInBatch", j,
-	// 	)
-	//
-	// 	metrics.DriverL2HeadHeightGauge.Set(float64(lastPayloadData.Number))
-	// }
+		// parent, err = i.rpc.L2.HeaderByHash(ctx, i.progressTracker.LastSyncedBlockHash())
+		// } else {
+		// 	var parentNumber *big.Int
+		// 	if lastPayloadData == nil {
+		// 		if meta.GetBatchID().Uint64() == i.rpc.MinimalRollupClients.ForkHeights.Pacaya {
+		// 			parentNumber = new(big.Int).SetUint64(meta.GetBatchID().Uint64() - 1)
+		// 		} else {
+		// 			lastBatch, err := i.rpc.GetBatchByID(ctx, new(big.Int).SetUint64(meta.GetBatchID().Uint64()-1))
+		// 			if err != nil {
+		// 				return fmt.Errorf("failed to fetch last batch (%d): %w", meta.GetBatchID().Uint64()-1, err)
+		// 			}
+		// 			parentNumber = new(big.Int).SetUint64(lastBatch.LastBlockId)
+		// 		}
+		// 	} else {
+		// 		parentNumber = new(big.Int).SetUint64(lastPayloadData.Number)
+		// 	}
+		//
+		// TODO: Good enough for now -  we eventually need to get parent some other way
+		parent, err = i.rpc.L2ParentByCurrentBlockID(ctx, new(big.Int).Add(big.NewInt(0), common.Big1))
+		// }
+		if err != nil {
+			return fmt.Errorf("failed to fetch L2 parent block: %w", err)
+		}
+
+		log.Debug(
+			"Parent block",
+			"blockID", parent.Number,
+			"hash", parent.Hash(),
+			"beaconSyncTriggered", i.progressTracker.Triggered(),
+		)
+
+		// Otherwise, we need to create a new execution payload and set it as the head block in L2 EE.
+		createExecutionPayloadsMetaData, anchorTx, err := assembleCreateExecutionPayloadMetaPacaya(
+			ctx,
+			i.rpc,
+			i.anchorConstructor,
+			meta,
+			allTxs,
+			meta.Header().Id,
+			parent,
+			j,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to assemble execution payload creation metadata: %w", err)
+		}
+
+		// TODO: Thisi is just a placeholder for now
+		config := &pacayaBindings.LibSharedDataBaseFeeConfig{
+			AdjustmentQuotient:     10,
+			SharingPctg:            80,
+			GasIssuancePerSecond:   100000,
+			MinGasExcess:           500000000,
+			MaxGasIssuancePerBlock: 200000,
+		}
+
+		// Decompress the transactions list and try to insert a new head block to L2 EE.
+		if lastPayloadData, err = createPayloadAndSetHead(
+			ctx,
+			i.rpc,
+			&createPayloadAndSetHeadMetaData{
+				createExecutionPayloadsMetaData: createExecutionPayloadsMetaData,
+				AnchorBlockID:                   new(big.Int).SetUint64(meta.Attributes().Metadata.AnchorBlockId.Uint64()),
+				AnchorBlockHash:                 meta.Attributes().Metadata.AnchorBlockHash,
+				BaseFeeConfig:                   config,
+				Parent:                          parent,
+			},
+			anchorTx,
+		); err != nil {
+			return fmt.Errorf("failed to insert new head to L2 execution engine: %w", err)
+		}
+
+		log.Debug("Payload data", "hash", lastPayloadData.BlockHash, "txs", len(lastPayloadData.Transactions))
+
+		// Wait till the corresponding L2 header to be existed in the L2 EE.
+		if _, err := i.rpc.WaitL2Header(ctx, new(big.Int).SetUint64(lastPayloadData.Number)); err != nil {
+			return fmt.Errorf("failed to wait for L2 header (%d): %w", lastPayloadData.Number, err)
+		}
+
+		log.Info(
+			"🔗 New L2 block inserted",
+			"blockID", lastPayloadData.Number,
+			"hash", lastPayloadData.BlockHash,
+			"coinbase", lastPayloadData.FeeRecipient.Hex(),
+			"transactions", len(lastPayloadData.Transactions),
+			"timestamp", lastPayloadData.Timestamp,
+			"baseFee", utils.WeiToGWei(lastPayloadData.BaseFeePerGas),
+			"withdrawals", len(lastPayloadData.Withdrawals),
+			"publication ID", meta.Header().Id,
+			"gasLimit", lastPayloadData.GasLimit,
+			"gasUsed", lastPayloadData.GasUsed,
+			"parentHash", lastPayloadData.ParentHash,
+			"indexInBatch", j,
+		)
+
+		metrics.DriverL2HeadHeightGauge.Set(float64(lastPayloadData.Number))
+	}
 
 	return nil
 }

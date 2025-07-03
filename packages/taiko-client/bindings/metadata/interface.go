@@ -70,6 +70,6 @@ type TaikoPublicationAttributesAlethia struct {
 }
 
 type BlobRef struct {
-	BlockNumber *big.Int    `json:"blockNumber"` // uint256 → *big.Int
-	Blobhashes  [][32]uint8 `json:"blobhashes"`  // bytes32[] → []common.Hash
+	BlockNumber *big.Int      `json:"blockNumber"` // uint256 → *big.Int
+	Blobhashes  []common.Hash `json:"blobhashes"`  // bytes32[] → []common.Hash
 }

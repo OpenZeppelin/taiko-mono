@@ -1,10 +1,15 @@
-import { Config } from "./interface";
-const fs = require("fs");
-const path = require("path");
-const { ethers } = require("ethers");
-const { deployTaikoAnchor } = require("./taikoAnchor");
-const { deployERC20 } = require("./erc20");
-const config: Config = require("../data/genesis_config.js");
+import * as fs from "fs";
+import * as path from "path";
+import { ethers } from "ethers";
+import { deployNewTaikoAnchor } from "./newTaikoAnchor";
+import { deployERC20 } from "./erc20";
+// import * as configData from "../data/genesis_config.js";
+
+// TypeScript type imports can still use import syntax
+import type { Config } from "./interface";
+// When importing CommonJS module, need to access default or use require
+const configData = require("../data/genesis_config.js");
+const config: Config = configData;
 
 // Generate a L2 genesis JSON based on the given configurations.
 // ref: https://docs.soliditylang.org/en/latest/internals/layout_in_storage.html
@@ -40,7 +45,7 @@ async function main() {
 
     console.log("start deploy TaikoAnchor contract");
 
-    let result = await deployTaikoAnchor(config, {
+    let result = await deployNewTaikoAnchor(config, {
         alloc: {},
         storageLayouts: {},
     });

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import { ICommitmentStore } from "../ICommitmentStore.sol";
+import { ICommitmentStore } from "./ICommitmentStore.sol";
 
 ///@dev This contains all the fields of the Ethereum block header in the cancun fork taken from
 /// https://github.com/ethereum/go-ethereum/blob/master/core/types/block.go#L75
@@ -21,7 +21,7 @@ struct BlockHeader {
     bytes extraData;
     bytes32 mixedHash;
     uint64 nonce;
-    bytes32 baseFeePerGas;
+    uint256 baseFeePerGas;
     bytes32 withdrawalsRoot;
     uint64 blobGasUsed;
     uint64 excessBlobGas;

@@ -63,6 +63,8 @@ func (c *AnchorTxConstructor) AssembleAnchorV3Tx(
 		"baseFee", utils.WeiToGWei(baseFee),
 	)
 
+	log.Info(
+		"blockHeader", "header", blockHeader)
 	taikoBlockHeader := ConvertToITaikoAnchorBlockHeader(&blockHeader)
 	return c.rpc.MinimalRollupClients.TaikoAnchor.Anchor(opts, publicationId, anchorBlockID, anchorStateRoot, *taikoBlockHeader, uint32(parentGasUsed))
 }
@@ -86,12 +88,12 @@ func ConvertToITaikoAnchorBlockHeader(h *types.Header) *minimal.ITaikoAnchorBloc
 		MixedHash:        h.MixDigest,
 		Nonce:            h.Nonce.Uint64(),
 
-		BaseFeePerGas:         h.BaseFee,
-		WithdrawalsRoot:       *h.WithdrawalsHash,
-		BlobGasUsed:           *h.BlobGasUsed,
-		ExcessBlobGas:         *h.ExcessBlobGas,
-		ParentBeaconBlockRoot: *h.ParentBeaconRoot,
-		RequestsHash:          *h.RequestsHash,
+		// BaseFeePerGas: h.BaseFee,
+		// WithdrawalsRoot:       *h.WithdrawalsHash,
+		// BlobGasUsed:           *h.BlobGasUsed,
+		// ExcessBlobGas:         *h.ExcessBlobGas,
+		// ParentBeaconBlockRoot: *h.ParentBeaconRoot,
+		// RequestsHash:          *h.RequestsHash,
 	}
 }
 

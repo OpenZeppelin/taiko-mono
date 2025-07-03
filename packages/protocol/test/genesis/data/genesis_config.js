@@ -49,6 +49,9 @@ module.exports = {
   param1559: {
     gasExcess: 1,
   },
+  // Anchor related fields.
+  fixedBaseFee: 1,
+  permittedSender: "0x0000777735367b36bC9B61C50022d9D0700dB4Ec",
   // Option to pre-deploy an ERC-20 token.
   predeployERC20: true,
   pacayaForkHeight: 1024,

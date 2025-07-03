@@ -9,6 +9,8 @@ export interface Config {
     contractAddresses: Object;
     param1559: Object;
     pacayaForkHeight: number;
+    fixedBaseFee: number;
+    permittedSender: string;
 }
 
 export interface Result {
