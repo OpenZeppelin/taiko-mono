@@ -55,6 +55,9 @@ To interact with the EL you can use the rpc endpoint (i.e when deploying a contr
 
 1.  Run a local L2 execution client(`taiko-geth`).
     First make sure you generate a JWT secret and save it as `jwt.txt` as explained [here](https://docs.taiko.xyz/guides/node-operators/run-a-node-for-taiko-alethia/).
+
+2. Checkout the `integrate-new-anchor` branch
+
 Inside the `taiko-geth` project:
 
 ```sh
