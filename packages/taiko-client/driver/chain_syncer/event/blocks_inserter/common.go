@@ -419,11 +419,10 @@ func assembleCreateExecutionPayloadMetaPacaya(
 		txListCursor += int(1)
 	}
 	// Get transactions in the block.
-	txs := types.Transactions{}
+	txs := allTxsInBatch
 	// if txListCursor+int(blockInfo.NumTransactions) <= len(allTxsInBatch) {
 	// 	txs = allTxsInBatch[txListCursor : txListCursor+int(blockInfo.NumTransactions)]
 	// } else if txListCursor < len(allTxsInBatch) {
-	txs = allTxsInBatch[txListCursor:]
 	// }
 
 	return &createExecutionPayloadsMetaData{
