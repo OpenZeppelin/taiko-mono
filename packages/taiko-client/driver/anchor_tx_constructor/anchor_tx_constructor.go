@@ -41,7 +41,7 @@ func (c *AnchorTxConstructor) AssembleAnchorV3Tx(
 	ctx context.Context,
 	// Parameters of the TaikoAnchor.anchorV3 transaction.
 	anchorBlockID *big.Int,
-	anchorStateRoot common.Hash,
+	anchorBlockHash common.Hash,
 	parentGasUsed uint64,
 	publicationId *big.Int,
 	blockHeader types.Header,
@@ -58,20 +58,22 @@ func (c *AnchorTxConstructor) AssembleAnchorV3Tx(
 		"AnchorV3 arguments",
 		"l2Height", l2Height,
 		"anchorBlockId", anchorBlockID,
-		"anchorStateRoot", anchorStateRoot,
+		"anchorBlockHash", anchorBlockHash,
 		"parentGasUsed", parentGasUsed,
 		"baseFee", utils.WeiToGWei(baseFee),
 	)
 
-	log.Info(
-		"blockHeader", "header", blockHeader)
 	taikoBlockHeader := ConvertToITaikoAnchorBlockHeader(&blockHeader)
-	return c.rpc.MinimalRollupClients.TaikoAnchor.Anchor(opts, publicationId, anchorBlockID, anchorStateRoot, *taikoBlockHeader, uint32(parentGasUsed))
+	blockHeaderHash := blockHeader.Hash()
+	if blockHeaderHash != anchorBlockHash {
+		return nil, fmt.Errorf("block header hash %s is not the same as the anchor block hash %s", blockHeaderHash, anchorBlockHash)
+	}
+
+	return c.rpc.MinimalRollupClients.TaikoAnchor.Anchor(opts, publicationId, anchorBlockID, anchorBlockHash, *taikoBlockHeader, uint32(parentGasUsed))
 }
 
 func ConvertToITaikoAnchorBlockHeader(h *types.Header) *minimal.ITaikoAnchorBlockHeader {
-
-	return &minimal.ITaikoAnchorBlockHeader{
+	header := &minimal.ITaikoAnchorBlockHeader{
 		ParentHash:       h.ParentHash,
 		OmnersHash:       h.UncleHash,
 		Coinbase:         h.Coinbase,
@@ -87,14 +89,47 @@ func ConvertToITaikoAnchorBlockHeader(h *types.Header) *minimal.ITaikoAnchorBloc
 		ExtraData:        h.Extra,
 		MixedHash:        h.MixDigest,
 		Nonce:            h.Nonce.Uint64(),
-
-		// BaseFeePerGas: h.BaseFee,
-		// WithdrawalsRoot:       *h.WithdrawalsHash,
-		// BlobGasUsed:           *h.BlobGasUsed,
-		// ExcessBlobGas:         *h.ExcessBlobGas,
-		// ParentBeaconBlockRoot: *h.ParentBeaconRoot,
-		// RequestsHash:          *h.RequestsHash,
+		BaseFeePerGas:    h.BaseFee,
 	}
+
+	if h.BaseFee != nil {
+		header.BaseFeePerGas = *&h.BaseFee
+	} else {
+		header.BaseFeePerGas = big.NewInt(0)
+	}
+
+	// These fields are sometimes nil
+	if h.WithdrawalsHash != nil {
+		header.WithdrawalsRoot = *h.WithdrawalsHash
+	} else {
+		header.WithdrawalsRoot = common.Hash{}
+	}
+
+	if h.BlobGasUsed != nil {
+		header.BlobGasUsed = *h.BlobGasUsed
+	} else {
+		header.BlobGasUsed = 0
+	}
+
+	if h.ExcessBlobGas != nil {
+		header.ExcessBlobGas = *h.ExcessBlobGas
+	} else {
+		header.ExcessBlobGas = 0
+	}
+
+	if h.ParentBeaconRoot != nil {
+		header.ParentBeaconBlockRoot = *h.ParentBeaconRoot
+	} else {
+		header.ParentBeaconBlockRoot = common.Hash{}
+	}
+
+	if h.RequestsHash != nil {
+		header.RequestsHash = *h.RequestsHash
+	} else {
+		header.RequestsHash = common.Hash{}
+	}
+
+	return header
 }
 
 // transactOpts is a utility method to create some transact options of the anchor transaction in given L2 block with

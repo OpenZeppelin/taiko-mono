@@ -396,13 +396,14 @@ func assembleCreateExecutionPayloadMetaPacaya(
 		return nil, nil, fmt.Errorf("failed to fetch anchor block: %w", err)
 	}
 
+	anchorBlochHash := anchorBlockHeader.Hash()
 	anchorTx, err := anchorConstructor.AssembleAnchorV3Tx(
 		ctx,
 		new(big.Int).SetUint64(meta.Attributes().Metadata.AnchorBlockId.Uint64()),
-		anchorBlockHeader.Root,
+		anchorBlochHash,
 		parent.GasUsed,
 		publicationId,
-		*parent,
+		*anchorBlockHeader,
 		blockID,
 		baseFee,
 	)

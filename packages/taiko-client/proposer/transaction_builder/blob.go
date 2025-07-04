@@ -155,7 +155,7 @@ func (b *BlobTransactionBuilder) BuildPacaya(
 	// 	}
 	// }
 
-	if data, err = encoding.TaikoInboxAlethiaABI.Pack("publish", new(big.Int).SetUint64(uint64(len(blobs))), uint64(205)); err != nil {
+	if data, err = encoding.TaikoInboxAlethiaABI.Pack("publish", new(big.Int).SetUint64(uint64(len(blobs))), uint64(230)); err != nil {
 		return nil, err
 	}
 

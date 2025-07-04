@@ -181,6 +181,10 @@ func (c *Client) initMinimalRollupClients(cfg *ClientConfig) error {
 		return fmt.Errorf("failed to initialize CheckpointTracker client: %w", err)
 	}
 
+	if minimalClients.TaikoAnchor, err = minimalBindings.NewITaikoAnchor(cfg.TaikoAnchorAddress, c.L1); err != nil {
+		return fmt.Errorf("failed to initialize TaikoAnchor client: %w", err)
+	}
+
 	// if cfg.ProverManagerAddress.Hex() != ZeroAddress.Hex() {
 	// 	if minimalClients.ProverManager, err = minimalBindings.NewIProverManager(cfg.ProverManagerAddress, c.L1); err != nil {
 	// 		return fmt.Errorf("failed to initialize ProverManager client: %w", err)
