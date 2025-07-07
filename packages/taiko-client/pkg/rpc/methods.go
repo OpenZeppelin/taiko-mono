@@ -241,7 +241,7 @@ func (c *Client) WaitTillL2ExecutionEngineSynced(ctx context.Context) error {
 
 			if progress.IsSyncing() {
 				log.Info(
-					"L2 execution engine is not hehe syncing",
+					"L2 execution engine is syncing",
 					"currentBlockID", progress.CurrentBlockID,
 					"highestBlockID", progress.HighestBlockID,
 					"progress", progress.SyncProgress,

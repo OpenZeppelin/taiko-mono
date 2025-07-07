@@ -89,11 +89,12 @@ func (i *BlocksInserterPacaya) InsertBlocks(
 	// }
 
 	var (
-		allTxs          = i.txListDecompressor.TryDecompress(i.rpc.L2.ChainID, txListBytes, true)
+		txsWithMetadata = i.txListDecompressor.TryDecompressWithMetadata(i.rpc.L2.ChainID, txListBytes, true)
 		parent          *types.Header
 		lastPayloadData *engine.ExecutableData
 	)
-	log.Info("allTxs", "txs", allTxs)
+	log.Info("allTxs", "Field 1", txsWithMetadata.Field1)
+	log.Info("allTxs", "Field 2", txsWithMetadata.Field2)
 
 	// TODO: this should loop through 'blocks'
 	for j := range 2 {
@@ -142,7 +143,7 @@ func (i *BlocksInserterPacaya) InsertBlocks(
 			i.rpc,
 			i.anchorConstructor,
 			meta,
-			allTxs,
+			txsWithMetadata.Transactions,
 			meta.Header().Id,
 			parent,
 			j,

@@ -49,19 +49,16 @@ func NewBuilderWithFallback(
 ) *TxBuilderWithFallback {
 	builder := &TxBuilderWithFallback{rpc: rpc, fallback: fallback, txmgrSelector: txmgrSelector}
 
-	// if blobAllowed {
 	builder.blobTransactionBuilder = NewBlobTransactionBuilder(
 		rpc,
 		proposerPrivateKey,
 		taikoInboxAddress,
-		// taikoWrapperAddress,
 		proverSetAddress,
 		l2SuggestedFeeRecipient,
 		gasLimit,
 		chainConfig,
 		revertProtectionEnabled,
 	)
-	// }
 
 	// builder.calldataTransactionBuilder = NewCalldataTransactionBuilder(
 	// 	rpc,
@@ -82,48 +79,23 @@ func NewBuilderWithFallback(
 func (b *TxBuilderWithFallback) BuildPacaya(
 	ctx context.Context,
 	txBatch []types.Transactions,
+	anchorBlockId uint64,
 	// forcedInclusion *pacaya.IForcedInclusionStoreForcedInclusion,
 	// minTxsPerForcedInclusion *big.Int,
 	parentMetahash common.Hash,
 ) (*txmgr.TxCandidate, error) {
-	// If calldata is the only option, just use it.
-	// if b.blobTransactionBuilder == nil {
-	// 	return b.calldataTransactionBuilder.BuildPacaya(
-	// 		ctx, txBatch, forcedInclusion, minTxsPerForcedInclusion, parentMetahash,
-	// 	)
-	// }
-	// If blob is enabled, and fallback is not enabled, just build a blob transaction.
-	// if !b.fallback {
-	// return b.blobTransactionBuilder.BuildPacaya(ctx, txBatch, parentMetahash)
-	// }
-
-	// Otherwise, compare the cost, and choose the cheaper option.
 	var (
-		g = new(errgroup.Group)
-		// txWithCalldata *txmgr.TxCandidate
+		g          = new(errgroup.Group)
 		txWithBlob *txmgr.TxCandidate
-		// costCalldata *big.Int
-		costBlob *big.Int
-		err      error
+		costBlob   *big.Int
+		err        error
 	)
 
-	// g.Go(func() error {
-	// 	if txWithCalldata, err = b.calldataTransactionBuilder.BuildPacaya(
-	// 		ctx,
-	// 		txBatch,
-	// 		parentMetahash,
-	// 	); err != nil {
-	// 		return fmt.Errorf("failed to build type-2 transaction: %w", err)
-	// 	}
-	// 	if costCalldata, err = b.estimateCandidateCost(ctx, txWithCalldata); err != nil {
-	// 		return fmt.Errorf("failed to estimate type-2 transaction cost: %w", encoding.TryParsingCustomError(err))
-	// 	}
-	// 	return nil
-	// })
 	g.Go(func() error {
 		if txWithBlob, err = b.blobTransactionBuilder.BuildPacaya(
 			ctx,
 			txBatch,
+			anchorBlockId,
 			parentMetahash,
 		); err != nil {
 			return fmt.Errorf("failed to build type-3 transaction: %w", err)
@@ -138,7 +110,7 @@ func (b *TxBuilderWithFallback) BuildPacaya(
 		log.Error("Failed to estimate transactions cost, will build a type-3 transaction", "error", err)
 		metrics.ProposerCostEstimationError.Inc()
 		// If there is an error, just build a blob transaction.
-		return b.blobTransactionBuilder.BuildPacaya(ctx, txBatch, parentMetahash)
+		return b.blobTransactionBuilder.BuildPacaya(ctx, txBatch, anchorBlockId, parentMetahash)
 	}
 
 	var (

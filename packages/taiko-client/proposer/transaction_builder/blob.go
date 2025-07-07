@@ -3,6 +3,7 @@ package builder
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/binary"
 	"math/big"
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
@@ -66,11 +67,11 @@ func NewBlobTransactionBuilder(
 func (b *BlobTransactionBuilder) BuildPacaya(
 	ctx context.Context,
 	txBatch []types.Transactions,
+	anchorBlockId uint64,
 	// forcedInclusion *pacayaBindings.IForcedInclusionStoreForcedInclusion,
 	// minTxsPerForcedInclusion *big.Int,
 	parentMetahash common.Hash,
 ) (*txmgr.TxCandidate, error) {
-	// ABI encode the TaikoWrapper.proposeBatch / ProverSet.proposeBatch parameters.
 	var (
 		to = &b.taikoInboxAddress
 		// proposer      = crypto.PubkeyToAddress(b.proposerPrivateKey.PublicKey)
@@ -112,12 +113,9 @@ func (b *BlobTransactionBuilder) BuildPacaya(
 		return nil, err
 	}
 
-	if blobs, err = b.splitToBlobs(txListsBytes); err != nil {
+	if blobs, err = b.splitToBlobsWithMetadata(txListsBytes); err != nil {
 		return nil, err
 	}
-
-	// str := blobs[0].String()
-	// log.Info("blobs", "blobs", str)
 
 	// params := &encoding.BatchParams{
 	// 	Proposer:                 proposer,
@@ -155,7 +153,7 @@ func (b *BlobTransactionBuilder) BuildPacaya(
 	// 	}
 	// }
 
-	if data, err = encoding.TaikoInboxAlethiaABI.Pack("publish", new(big.Int).SetUint64(uint64(len(blobs))), uint64(600)); err != nil {
+	if data, err = encoding.TaikoInboxAlethiaABI.Pack("publish", new(big.Int).SetUint64(uint64(len(blobs))), anchorBlockId); err != nil {
 		return nil, err
 	}
 
@@ -165,6 +163,41 @@ func (b *BlobTransactionBuilder) BuildPacaya(
 		To:       to,
 		GasLimit: b.gasLimit,
 	}, nil
+}
+
+func (b *BlobTransactionBuilder) splitToBlobsWithMetadata(txListBytes []byte) ([]*eth.Blob, error) {
+	// 4 bytes for uint32 (for now)
+	const metadataSize = 4
+	maxDataPerBlob := eth.MaxBlobDataSize - metadataSize
+
+	var blobs []*eth.Blob
+	totalBlobs := (len(txListBytes) + maxDataPerBlob - 1) / maxDataPerBlob
+
+	for i := 0; i < totalBlobs; i++ {
+		start := i * maxDataPerBlob
+		end := start + maxDataPerBlob
+		if end > len(txListBytes) {
+			end = len(txListBytes)
+		}
+
+		metadata := make([]byte, metadataSize)
+
+		// Two random values for now just to test it works
+		// Field 1
+		binary.BigEndian.PutUint16(metadata[0:2], uint16(999))
+
+		// Field 2
+		binary.BigEndian.PutUint16(metadata[2:4], uint16(111))
+
+		blobData := append(metadata, txListBytes[start:end]...)
+
+		var blob = &eth.Blob{}
+		if err := blob.FromData(blobData); err != nil {
+			return nil, err
+		}
+		blobs = append(blobs, blob)
+	}
+	return blobs, nil
 }
 
 // splitToBlobs splits the txListBytes into multiple blobs.

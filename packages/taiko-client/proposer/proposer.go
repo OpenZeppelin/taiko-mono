@@ -270,6 +270,8 @@ func (p *Proposer) ProposeOp(ctx context.Context) error {
 	// 	return nil
 	// }
 
+	// TODO: Redo syncing
+
 	// Wait until L2 execution engine is synced at first.
 	// if err := p.rpc.WaitTillL2ExecutionEngineSynced(ctx); err != nil {
 	// 	return fmt.Errorf("failed to wait until L2 execution engine synced: %w", err)
@@ -291,7 +293,7 @@ func (p *Proposer) ProposeOp(ctx context.Context) error {
 		return fmt.Errorf("failed to get L2 chain head number: %w", err)
 	}
 
-	// TODO: GET PARENT META HASH FROM CONTRACT
+	// TODO: GET PARENT META HASH SOMEHOW
 
 	// Fetch the parent meta hash of current the L2 head, which will be used
 	// by revert protection.
@@ -314,17 +316,24 @@ func (p *Proposer) ProposeOp(ctx context.Context) error {
 	}
 
 	// Propose the transactions lists.
-	return p.ProposeTxLists(ctx, txLists, l2Head, parentMetaHash)
+	// TODO: For now set the anchor block to the latest block - a buffer (5)
+	anchorBlockId, err := p.rpc.L1.BlockNumber(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get L1 chain head number: %w", err)
+	}
+	anchorBlockId = anchorBlockId - 5
+	return p.ProposeTxLists(ctx, txLists, anchorBlockId, l2Head, parentMetaHash)
 }
 
 // ProposeTxList proposes the given transactions lists to TaikoInbox smart contract.
 func (p *Proposer) ProposeTxLists(
 	ctx context.Context,
 	txLists []types.Transactions,
+	anchorBlockId uint64,
 	l2Head uint64,
 	parentMetaHash common.Hash,
 ) error {
-	if err := p.ProposeTxListPacaya(ctx, txLists, parentMetaHash); err != nil {
+	if err := p.ProposeTxListPacaya(ctx, txLists, anchorBlockId, parentMetaHash); err != nil {
 		return err
 	}
 	p.lastProposedAt = time.Now()
@@ -335,6 +344,7 @@ func (p *Proposer) ProposeTxLists(
 func (p *Proposer) ProposeTxListPacaya(
 	ctx context.Context,
 	txBatch []types.Transactions,
+	anchorBlockId uint64,
 	parentMetaHash common.Hash,
 ) error {
 	var (
@@ -403,9 +413,9 @@ func (p *Proposer) ProposeTxListPacaya(
 
 	// txCandidate, err := p.txBuilder.BuildPacaya(ctx, txBatch, forcedInclusion, minTxsPerForcedInclusion, parentMetaHash)
 
-	txCandidate, err := p.txBuilder.BuildPacaya(ctx, txBatch, parentMetaHash)
+	txCandidate, err := p.txBuilder.BuildPacaya(ctx, txBatch, anchorBlockId, parentMetaHash)
 	if err != nil {
-		log.Warn("Failed to build TaikoInbox.proposeBatch transaction", "error", encoding.TryParsingCustomError(err))
+		log.Warn("Failed to build TaikoInbox.publish transaction", "error", encoding.TryParsingCustomError(err))
 		return err
 	}
 
@@ -413,10 +423,10 @@ func (p *Proposer) ProposeTxListPacaya(
 		return err
 	}
 
-	log.Info("📝 Propose blocks batch succeeded", "blocksInBatch", len(txBatch), "txs", txs)
+	log.Info("📝 Publish blocks batch succeeded", "blocksInBatch", len(txBatch), "txs", txs)
 
-	// metrics.ProposerProposedTxListsCounter.Add(float64(len(txBatch)))
-	// metrics.ProposerProposedTxsCounter.Add(float64(txs))
+	metrics.ProposerProposedTxListsCounter.Add(float64(len(txBatch)))
+	metrics.ProposerProposedTxsCounter.Add(float64(txs))
 
 	return nil
 }
@@ -476,7 +486,7 @@ func (p *Proposer) RegisterTxMgrSelectorToBlobServer(blobServer *testutils.Memor
 	)
 }
 
-// TODO: GET PARENT META HASH FROM CONTRACT
+// TODO: GET PARENT META HASH SOMEHOW
 // GetParentMetaHash returns the parent meta hash of the given L2 head.
 // func (p *Proposer) GetParentMetaHash(ctx context.Context, l2Head uint64) (common.Hash, error) {
 // 	state, err := p.rpc.GetProtocolStateVariablesPacaya(&bind.CallOpts{Context: ctx})
