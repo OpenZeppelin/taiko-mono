@@ -311,9 +311,9 @@ func (p *Proposer) ProposeOp(ctx context.Context) error {
 	}
 
 	// If there is an empty transaction list, just return without proposing.
-	if len(txLists) == 0 {
-		return nil
-	}
+	// if len(txLists) == 0 {
+	// 	return nil
+	// }
 
 	// Propose the transactions lists.
 	// TODO: For now set the anchor block to the latest block - a buffer (5)
