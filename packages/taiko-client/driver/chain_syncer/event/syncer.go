@@ -172,6 +172,7 @@ func (s *Syncer) onPublished(
 ) error {
 	log.Info("onPublished called - processing Published event")
 	// Extract block information from the published event
+	// TODO: I dont think block id should be conflated with publication ID - we should get this from the blob probably
 	blockID := meta.Header().Id
 	timestamp := meta.Header().Timestamp.Uint64()
 
