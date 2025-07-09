@@ -25,10 +25,9 @@ import (
 // BlobTransactionBuilder is responsible for building a TaikoInbox.proposeBatch transaction with txList
 // bytes saved in blob.
 type BlobTransactionBuilder struct {
-	rpc                *rpc.Client
-	proposerPrivateKey *ecdsa.PrivateKey
-	taikoInboxAddress  common.Address
-	// taikoWrapperAddress     common.Address
+	rpc                     *rpc.Client
+	proposerPrivateKey      *ecdsa.PrivateKey
+	taikoInboxAddress       common.Address
 	proverSetAddress        common.Address
 	l2SuggestedFeeRecipient common.Address
 	gasLimit                uint64
@@ -41,7 +40,6 @@ func NewBlobTransactionBuilder(
 	rpc *rpc.Client,
 	proposerPrivateKey *ecdsa.PrivateKey,
 	taikoInboxAddress common.Address,
-	// taikoWrapperAddress common.Address,
 	proverSetAddress common.Address,
 	l2SuggestedFeeRecipient common.Address,
 	gasLimit uint64,
@@ -52,7 +50,6 @@ func NewBlobTransactionBuilder(
 		rpc,
 		proposerPrivateKey,
 		taikoInboxAddress,
-		// taikoWrapperAddress,
 		proverSetAddress,
 		l2SuggestedFeeRecipient,
 		gasLimit,
@@ -68,9 +65,7 @@ func (b *BlobTransactionBuilder) BuildPacaya(
 	ctx context.Context,
 	txBatch []types.Transactions,
 	anchorBlockId uint64,
-	// forcedInclusion *pacayaBindings.IForcedInclusionStoreForcedInclusion,
 	// minTxsPerForcedInclusion *big.Int,
-	parentMetahash common.Hash,
 ) (*txmgr.TxCandidate, error) {
 	var (
 		to = &b.taikoInboxAddress
@@ -78,8 +73,6 @@ func (b *BlobTransactionBuilder) BuildPacaya(
 		data  []byte
 		blobs []*eth.Blob
 		// encodedParams []byte
-		// blockParams []pacayaBindings.ITaikoInboxBlockParams
-		// forcedInclusionParams *encoding.BatchParams
 		allTxs types.Transactions
 	)
 
@@ -132,20 +125,6 @@ func (b *BlobTransactionBuilder) BuildPacaya(
 	// } else {
 	// params.ParentMetaHash = parentMetahash
 	// }
-	// }
-
-	// if encodedParams, err = encoding.EncodeBatchParamsWithForcedInclusion(forcedInclusionParams, params); err != nil {
-	// 	return nil, err
-	// }
-
-	// if b.proverSetAddress != rpc.ZeroAddress {
-	// 	if data, err = encoding.ProverSetPacayaABI.Pack("proposeBatch", encodedParams, []byte{}); err != nil {
-	// 		return nil, err
-	// 	}
-	// } else {
-	// 	if data, err = encoding.TaikoWrapperABI.Pack("proposeBatch", encodedParams, []byte{}); err != nil {
-	// 		return nil, err
-	// 	}
 	// }
 
 	if data, err = encoding.TaikoInboxAlethiaABI.Pack("publish", new(big.Int).SetUint64(uint64(len(blobs))), anchorBlockId); err != nil {

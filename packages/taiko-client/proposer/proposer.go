@@ -9,12 +9,15 @@ import (
 	"time"
 
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/urfave/cli/v2"
+
+	"github.com/ethereum/go-ethereum/params"
 
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/encoding"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/internal/metrics"
@@ -38,8 +41,7 @@ type Proposer struct {
 
 	proposingTimer *time.Timer
 
-	// Transaction builder
-	txBuilder builder.ProposeBlocksTransactionBuilder
+	blobTransactionBuilder builder.BlobTransactionBuilder
 
 	// Protocol configurations
 	protocolConfigs config.ProtocolConfigs
@@ -113,18 +115,16 @@ func (p *Proposer) InitFromConfig(
 	p.chainConfig = config.NewChainConfig(
 		p.rpc.L2.ChainID,
 	)
-	p.txBuilder = builder.NewBuilderWithFallback(
+
+	p.blobTransactionBuilder = *builder.NewBlobTransactionBuilder(
 		p.rpc,
 		p.L1ProposerPrivKey,
-		cfg.L2SuggestedFeeRecipient,
 		cfg.TaikoInboxAddress,
-		// cfg.TaikoWrapperAddress,
 		cfg.ProverSetAddress,
+		cfg.L2SuggestedFeeRecipient,
 		cfg.ProposeBlockTxGasLimit,
 		p.chainConfig,
-		p.txmgrSelector,
 		cfg.RevertProtectionEnabled,
-		cfg.BlobAllowed,
 	)
 
 	return nil
@@ -292,17 +292,6 @@ func (p *Proposer) ProposeOp(ctx context.Context) error {
 		return fmt.Errorf("failed to get L2 chain head number: %w", err)
 	}
 
-	// TODO: GET PARENT META HASH SOMEHOW
-
-	// Fetch the parent meta hash of current the L2 head, which will be used
-	// by revert protection.
-	// parentMetaHash, err := p.GetParentMetaHash(ctx, l2Head)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to get parent meta hash: %w", err)
-	// }
-
-	var parentMetaHash = common.Hash{}
-
 	// Fetch pending L2 transactions from mempool.
 	txLists, err := p.fetchPoolContent(allowEmptyPoolContent)
 	if err != nil {
@@ -321,7 +310,7 @@ func (p *Proposer) ProposeOp(ctx context.Context) error {
 		return fmt.Errorf("failed to get L1 chain head number: %w", err)
 	}
 	anchorBlockId = anchorBlockId - 5
-	return p.ProposeTxLists(ctx, txLists, anchorBlockId, l2Head, parentMetaHash)
+	return p.ProposeTxLists(ctx, txLists, anchorBlockId, l2Head)
 }
 
 // ProposeTxList proposes the given transactions lists to TaikoInbox smart contract.
@@ -330,9 +319,8 @@ func (p *Proposer) ProposeTxLists(
 	txLists []types.Transactions,
 	anchorBlockId uint64,
 	l2Head uint64,
-	parentMetaHash common.Hash,
 ) error {
-	if err := p.ProposeTxListPacaya(ctx, txLists, anchorBlockId, parentMetaHash); err != nil {
+	if err := p.ProposeTxListPacaya(ctx, txLists, anchorBlockId); err != nil {
 		return err
 	}
 	p.lastProposedAt = time.Now()
@@ -344,7 +332,6 @@ func (p *Proposer) ProposeTxListPacaya(
 	ctx context.Context,
 	txBatch []types.Transactions,
 	anchorBlockId uint64,
-	parentMetaHash common.Hash,
 ) error {
 	var (
 		// proposerAddress = p.proposerAddress
@@ -412,13 +399,39 @@ func (p *Proposer) ProposeTxListPacaya(
 
 	// txCandidate, err := p.txBuilder.BuildPacaya(ctx, txBatch, forcedInclusion, minTxsPerForcedInclusion, parentMetaHash)
 
-	txCandidate, err := p.txBuilder.BuildPacaya(ctx, txBatch, anchorBlockId, parentMetaHash)
+	var (
+		txWithBlob *txmgr.TxCandidate
+		costBlob   *big.Int
+		err        error
+	)
+
+	if txWithBlob, err = p.blobTransactionBuilder.BuildPacaya(
+		ctx,
+		txBatch,
+		anchorBlockId,
+	); err != nil {
+		return fmt.Errorf("failed to build type-3 transaction: %w", err)
+	}
+	if costBlob, err = p.estimateCandidateCost(ctx, txWithBlob); err != nil {
+		return fmt.Errorf("failed to estimate type-3 transaction cost: %w", encoding.TryParsingCustomError(err))
+	}
+
+	var (
+		costBlobFloat64 float64
+	)
+	costBlobFloat64, _ = utils.WeiToEther(costBlob).Float64()
+
+	metrics.ProposerEstimatedCostBlob.Set(costBlobFloat64)
+
+	log.Info("Building a type-3 transaction", "costBlob", costBlobFloat64)
+	metrics.ProposerProposeByBlob.Inc()
+
 	if err != nil {
 		log.Warn("Failed to build TaikoInbox.publish transaction", "error", encoding.TryParsingCustomError(err))
 		return err
 	}
 
-	if err := p.SendTx(ctx, txCandidate); err != nil {
+	if err := p.SendTx(ctx, txWithBlob); err != nil {
 		return err
 	}
 
@@ -475,6 +488,62 @@ func (p *Proposer) Name() string {
 	return "proposer"
 }
 
+// TODO: We might remove this - this estimates cost of blob tx which we used to compare
+// to the calldata txs then decide which one is cheaper. As we only use type 3 tx maybe
+// we dont care anymore
+//
+// estimateCandidateCost estimates the realtime onchain cost of the given transaction.
+func (b *Proposer) estimateCandidateCost(
+	ctx context.Context,
+	candidate *txmgr.TxCandidate,
+) (*big.Int, error) {
+	txMgr, _ := b.txmgrSelector.Select()
+	gasTipCap, baseFee, blobBaseFee, err := txMgr.SuggestGasPriceCaps(ctx)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("Suggested gas price", "gasTipCap", gasTipCap, "baseFee", baseFee, "blobBaseFee", blobBaseFee)
+
+	gasFeeCap := new(big.Int).Add(baseFee, gasTipCap)
+	msg := ethereum.CallMsg{
+		From:  txMgr.From(),
+		To:    candidate.To,
+		Gas:   candidate.GasLimit,
+		Value: candidate.Value,
+		Data:  candidate.TxData,
+	}
+	if len(candidate.Blobs) != 0 {
+		var blobHashes []common.Hash
+		if _, blobHashes, err = txmgr.MakeSidecar(candidate.Blobs); err != nil {
+			return nil, fmt.Errorf("failed to make sidecar: %w", err)
+		}
+		msg.BlobHashes = blobHashes
+	}
+
+	gasUsed, err := b.rpc.L1.EstimateGas(ctx, msg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to estimate gas used: %w", err)
+	}
+
+	feeWithoutBlob := new(big.Int).Mul(gasFeeCap, new(big.Int).SetUint64(gasUsed))
+
+	// If its a type-2 transaction, we won't calculate blob fee.
+	if len(candidate.Blobs) == 0 {
+		return feeWithoutBlob, nil
+	}
+
+	// Otherwise, we add blob fee to the cost.
+	return new(big.Int).Add(
+		feeWithoutBlob,
+		new(big.Int).Mul(
+			new(big.Int).SetUint64(
+				uint64(len(candidate.Blobs)*params.BlobTxBlobGasPerBlob),
+			),
+			blobBaseFee,
+		),
+	), nil
+}
+
 // RegisterTxMgrSelectorToBlobServer registers the tx manager selector to the given blob server,
 // should only be used for testing.
 func (p *Proposer) RegisterTxMgrSelectorToBlobServer(blobServer *testutils.MemoryBlobServer) {
@@ -484,19 +553,3 @@ func (p *Proposer) RegisterTxMgrSelectorToBlobServer(blobServer *testutils.Memor
 		nil,
 	)
 }
-
-// TODO: GET PARENT META HASH SOMEHOW
-// GetParentMetaHash returns the parent meta hash of the given L2 head.
-// func (p *Proposer) GetParentMetaHash(ctx context.Context, l2Head uint64) (common.Hash, error) {
-// 	state, err := p.rpc.GetProtocolStateVariablesPacaya(&bind.CallOpts{Context: ctx})
-// 	if err != nil {
-// 		return common.Hash{}, fmt.Errorf("failed to fetch protocol state variables: %w", err)
-// 	}
-//
-// 	publicationHash, err := p.rpc.GetPublicationById(ctx, new(big.Int).SetUint64(state.Stats2.NumBatches-1))
-// 	if err != nil {
-// 		return common.Hash{}, fmt.Errorf("failed to fetch batch by ID: %w", err)
-// 	}
-//
-// 	return *publicationHash, nil
-// }

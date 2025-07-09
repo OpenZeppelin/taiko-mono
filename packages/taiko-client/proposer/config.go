@@ -81,11 +81,9 @@ func NewConfigFromCliContext(c *cli.Context) (*Config, error) {
 
 	return &Config{
 		ClientConfig: &rpc.ClientConfig{
-			L1Endpoint:        c.String(flags.L1WSEndpoint.Name),
-			L2Endpoint:        c.String(flags.L2HTTPEndpoint.Name),
-			TaikoInboxAddress: common.HexToAddress(c.String(flags.TaikoInboxAddress.Name)),
-			// TaikoWrapperAddress:         common.HexToAddress(c.String(flags.TaikoWrapperAddress.Name)),
-			// ForcedInclusionStoreAddress: common.HexToAddress(c.String(flags.ForcedInclusionStoreAddress.Name)),
+			L1Endpoint:         c.String(flags.L1WSEndpoint.Name),
+			L2Endpoint:         c.String(flags.L2HTTPEndpoint.Name),
+			TaikoInboxAddress:  common.HexToAddress(c.String(flags.TaikoInboxAddress.Name)),
 			TaikoAnchorAddress: common.HexToAddress(c.String(flags.TaikoAnchorAddress.Name)),
 			L2EngineEndpoint:   c.String(flags.L2AuthEndpoint.Name),
 			JwtSecret:          string(jwtSecret),
