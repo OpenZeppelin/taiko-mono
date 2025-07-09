@@ -125,7 +125,6 @@ func (p *Proposer) InitFromConfig(
 		p.txmgrSelector,
 		cfg.RevertProtectionEnabled,
 		cfg.BlobAllowed,
-		cfg.FallbackToCalldata,
 	)
 
 	return nil

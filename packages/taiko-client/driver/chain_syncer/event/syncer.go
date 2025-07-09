@@ -164,6 +164,94 @@ func (s *Syncer) processL1Blocks(ctx context.Context) error {
 	return nil
 }
 
+// func (s *Syncer) onBatchProposed(
+// 	ctx context.Context,
+// 	meta metadata.TaikoProposalMetaData,
+// 	endIter eventIterator.EndBatchProposedEventIterFunc,
+// ) error {
+// 	var (
+// 		firstBlockID = new(big.Int).SetUint64(meta.Pacaya().GetLastBlockID() - uint64(len(meta.Pacaya().GetBlocks())) + 1)
+// 		lastBlockID  = new(big.Int).SetUint64(meta.Pacaya().GetLastBlockID())
+// 		timestamp    = meta.Pacaya().GetLastBlockTimestamp()
+// 	)
+//
+// 	// We simply ignore the genesis block's `BatchesProposed` event.
+// 	if lastBlockID.Cmp(common.Big0) == 0 {
+// 		return nil
+// 	}
+//
+// 	// If we are not inserting a block whose parent block is the latest verified block in protocol,
+// 	// and the node hasn't just finished the P2P sync, we check if the L1 chain has been reorged.
+// 	if !s.progressTracker.Triggered() {
+// 		reorgCheckResult, err := s.checkReorg(ctx, firstBlockID)
+// 		if err != nil {
+// 			return err
+// 		}
+//
+// 		if reorgCheckResult.IsReorged {
+// 			log.Info(
+// 				"Reset L1Current cursor due to L1 reorg",
+// 				"l1CurrentHeightOld", s.state.GetL1Current().Number,
+// 				"l1CurrentHashOld", s.state.GetL1Current().Hash(),
+// 				"l1CurrentHeightNew", reorgCheckResult.L1CurrentToReset.Number,
+// 				"l1CurrentHashNew", reorgCheckResult.L1CurrentToReset.Hash(),
+// 				"lastInsertedBlockIDOld", s.lastInsertedBlockID,
+// 				"lastInsertedBlockIDNew", reorgCheckResult.LastHandledBlockIDToReset,
+// 			)
+// 			s.state.SetL1Current(reorgCheckResult.L1CurrentToReset)
+// 			s.lastInsertedBlockID = reorgCheckResult.LastHandledBlockIDToReset
+// 			s.reorgDetectedFlag = true
+// 			endIter()
+//
+// 			return nil
+// 		}
+// 	}
+//
+// 	// Ignore those already inserted blocks.
+// 	if s.lastInsertedBlockID != nil && lastBlockID.Cmp(s.lastInsertedBlockID) <= 0 {
+// 		log.Debug(
+// 			"Skip already inserted block",
+// 			"blockID", lastBlockID,
+// 			"lastInsertedBlockID", s.lastInsertedBlockID,
+// 		)
+// 		return nil
+// 	}
+//
+// 	// If the event's timestamp is in the future, we wait until the timestamp is reached, should
+// 	// only happen when testing.
+// 	if timestamp > uint64(time.Now().Unix()) {
+// 		log.Warn(
+// 			"Future L2 block, waiting",
+// 			"L2BlockTimestamp", timestamp,
+// 			"now", time.Now().Unix(),
+// 		)
+// 		time.Sleep(time.Until(time.Unix(int64(timestamp), 0)))
+// 	}
+//
+// 	// Insert new blocks to L2 EE's chain.
+// 	log.Info(
+// 		"New BatchProposed event",
+// 		"l1Height", meta.GetRawBlockHeight(),
+// 		"l1Hash", meta.GetRawBlockHash(),
+// 		"batchID", meta.Pacaya().GetBatchID(),
+// 		"lastBlockID", lastBlockID,
+// 		"lastTimestamp", meta.Pacaya().GetLastBlockTimestamp(),
+// 		"blocks", len(meta.Pacaya().GetBlocks()),
+// 	)
+// 	if err := s.blocksInserterPacaya.InsertBlocks(ctx, meta, endIter); err != nil {
+// 		return err
+// 	}
+//
+// 	metrics.DriverL1CurrentHeightGauge.Set(float64(meta.GetRawBlockHeight().Uint64()))
+// 	s.lastInsertedBlockID = lastBlockID
+//
+// 	if s.progressTracker.Triggered() {
+// 		s.progressTracker.ClearMeta()
+// 	}
+//
+// 	return nil
+// }
+
 // onPublished is a `Published` event callback which responsible for
 func (s *Syncer) onPublished(
 	ctx context.Context,

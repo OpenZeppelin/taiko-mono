@@ -419,7 +419,6 @@ func assembleCreateExecutionPayloadMetaPacaya(
 		txListCursor += int(1)
 	}
 	// Get transactions in the block.
-	txs := allTxsInBatch
 	// if txListCursor+int(blockInfo.NumTransactions) <= len(allTxsInBatch) {
 	// 	txs = allTxsInBatch[txListCursor : txListCursor+int(blockInfo.NumTransactions)]
 	// } else if txListCursor < len(allTxsInBatch) {
@@ -442,7 +441,7 @@ func assembleCreateExecutionPayloadMetaPacaya(
 			L1BlockHeight: meta.GetRawBlockHeight(),
 			L1BlockHash:   meta.GetRawBlockHash(),
 		},
-		Txs:         txs,
+		Txs:         allTxsInBatch,
 		Withdrawals: make([]*types.Withdrawal, 0),
 		BaseFee:     baseFee,
 	}, anchorTx, nil

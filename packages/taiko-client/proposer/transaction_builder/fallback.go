@@ -15,7 +15,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/encoding"
-	// "github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/pacaya"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/internal/metrics"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/pkg/config"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/pkg/rpc"
@@ -27,9 +26,7 @@ import (
 type TxBuilderWithFallback struct {
 	rpc                    *rpc.Client
 	blobTransactionBuilder *BlobTransactionBuilder
-	// calldataTransactionBuilder *CalldataTransactionBuilder
-	txmgrSelector *utils.TxMgrSelector
-	fallback      bool
+	txmgrSelector          *utils.TxMgrSelector
 }
 
 // NewBuilderWithFallback creates a new TxBuilderWithFallback instance.
@@ -38,16 +35,14 @@ func NewBuilderWithFallback(
 	proposerPrivateKey *ecdsa.PrivateKey,
 	l2SuggestedFeeRecipient common.Address,
 	taikoInboxAddress common.Address,
-	// taikoWrapperAddress common.Address,
 	proverSetAddress common.Address,
 	gasLimit uint64,
 	chainConfig *config.ChainConfig,
 	txmgrSelector *utils.TxMgrSelector,
 	revertProtectionEnabled bool,
 	blobAllowed bool,
-	fallback bool,
 ) *TxBuilderWithFallback {
-	builder := &TxBuilderWithFallback{rpc: rpc, fallback: fallback, txmgrSelector: txmgrSelector}
+	builder := &TxBuilderWithFallback{rpc: rpc, txmgrSelector: txmgrSelector}
 
 	builder.blobTransactionBuilder = NewBlobTransactionBuilder(
 		rpc,
@@ -59,18 +54,6 @@ func NewBuilderWithFallback(
 		chainConfig,
 		revertProtectionEnabled,
 	)
-
-	// builder.calldataTransactionBuilder = NewCalldataTransactionBuilder(
-	// 	rpc,
-	// 	proposerPrivateKey,
-	// 	l2SuggestedFeeRecipient,
-	// 	taikoInboxAddress,
-	// 	taikoWrapperAddress,
-	// 	proverSetAddress,
-	// 	gasLimit,
-	// 	chainConfig,
-	// 	revertProtectionEnabled,
-	// )
 
 	return builder
 }
@@ -117,17 +100,10 @@ func (b *TxBuilderWithFallback) BuildPacaya(
 		// costCalldataFloat64 float64
 		costBlobFloat64 float64
 	)
-	// costCalldataFloat64, _ = utils.WeiToEther(costCalldata).Float64()
 	costBlobFloat64, _ = utils.WeiToEther(costBlob).Float64()
 
 	// metrics.ProposerEstimatedCostCalldata.Set(costCalldataFloat64)
 	metrics.ProposerEstimatedCostBlob.Set(costBlobFloat64)
-
-	// if costCalldata.Cmp(costBlob) < 0 {
-	// 	log.Info("Building a type-2 transaction", "costCalldata", costCalldataFloat64, "costBlob", costBlobFloat64)
-	// 	metrics.ProposerProposeByCalldata.Inc()
-	// 	return txWithCalldata, nil
-	// }
 
 	log.Info("Building a type-3 transaction", "costBlob", costBlobFloat64)
 	metrics.ProposerProposeByBlob.Inc()

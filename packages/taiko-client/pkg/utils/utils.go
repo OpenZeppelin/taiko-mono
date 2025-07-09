@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/zlib"
 	"crypto/rand"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"math/big"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -82,6 +84,47 @@ func EncodeAndCompressTxList(txs types.Transactions) ([]byte, error) {
 	compressed, err := Compress(b)
 	if err != nil {
 		return nil, fmt.Errorf("failed to compress RLP encoded transactions: %w", err)
+	}
+
+	return compressed, nil
+}
+
+// TODO: Delimiter is not necessarily unique added this as a placeholder
+const START_OF_BLOCK_MARKER = 0xFF
+
+func EncodeAndCompressTxListWithBlocks(txs types.Transactions, txsPerBlock int) ([]byte, error) {
+	var buf bytes.Buffer
+
+	currentTimestamp := uint64(time.Now().Unix())
+
+	// TODO: Make this more efficient currently we are loopong through all txs
+	for i, tx := range txs {
+		if i%txsPerBlock == 0 {
+			if err := buf.WriteByte(START_OF_BLOCK_MARKER); err != nil {
+				return nil, fmt.Errorf("failed to write block marker: %w", err)
+			}
+
+			if err := binary.Write(&buf, binary.BigEndian, currentTimestamp); err != nil {
+				return nil, fmt.Errorf("failed to write timestamp: %w", err)
+			}
+
+			// increase timestamp ?
+			currentTimestamp += 12
+		}
+
+		txBytes, err := rlp.EncodeToBytes(tx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to RLP encode transaction %d: %w", i, err)
+		}
+
+		if _, err := buf.Write(txBytes); err != nil {
+			return nil, fmt.Errorf("failed to write transaction %d: %w", i, err)
+		}
+	}
+
+	compressed, err := Compress(buf.Bytes())
+	if err != nil {
+		return nil, fmt.Errorf("failed to compress transactions with blocks: %w", err)
 	}
 
 	return compressed, nil

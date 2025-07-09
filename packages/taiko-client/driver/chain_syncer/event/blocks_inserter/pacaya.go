@@ -67,9 +67,9 @@ func (i *BlocksInserterPacaya) InsertBlocks(
 	// if !metadata.IsPacaya() {
 	// 	return fmt.Errorf("metadata is not for Pacaya fork")
 	// }
-	// i.mutex.Lock()
-	// defer i.mutex.Unlock()
-	//
+	i.mutex.Lock()
+	defer i.mutex.Unlock()
+
 	var (
 		// 	// meta        = metadata.Pacaya()
 		txListBytes []byte
@@ -81,36 +81,29 @@ func (i *BlocksInserterPacaya) InsertBlocks(
 	if txListBytes, err = i.blobFetcher.FetchPacaya(ctx, meta); err != nil {
 		return fmt.Errorf("failed to fetch tx list from blob: %w", err)
 	}
-	// NOTE: We dont use calldata fetch for Alethia
-	// else {
-	// 	if txListBytes, err = i.calldataFetcher.FetchPacaya(ctx, meta); err != nil {
-	// 		return fmt.Errorf("failed to fetch tx list from calldata: %w", err)
-	// 	}
-	// }
 
 	var (
 		txsWithMetadata = i.txListDecompressor.TryDecompressWithMetadata(i.rpc.L2.ChainID, txListBytes, true)
 		parent          *types.Header
 		lastPayloadData *engine.ExecutableData
 	)
-	log.Info("allTxs", "Field 1", txsWithMetadata.Field1)
-	log.Info("allTxs", "Field 2", txsWithMetadata.Field2)
 
 	// TODO: this should loop through 'blocks'
 	for j := range 2 {
 		// Fetch the L2 parent block, if the node is just finished a P2P sync, we simply use the tracker's
 		// last synced verified block as the parent, otherwise, we fetch the parent block from L2 EE.
-		// if i.progressTracker.Triggered() {
-		// Already synced through beacon sync, just skip this event.
-		// if new(big.Int).SetUint64(meta.GetLastBlockID()).Cmp(i.progressTracker.LastSyncedBlockID()) <= 0 {
-		// 	return nil
-		// }
 
-		// parent, err = i.rpc.L2.HeaderByHash(ctx, i.progressTracker.LastSyncedBlockHash())
+		// if i.progressTracker.Triggered() {
+		// 	// Already synced through beacon sync, just skip this event.
+		// 	if new(big.Int).SetUint64(meta.GetLastBlockID()).Cmp(i.progressTracker.LastSyncedBlockID()) <= 0 {
+		// 		return nil
+		// 	}
+		//
+		// 	parent, err = i.rpc.L2.HeaderByHash(ctx, i.progressTracker.LastSyncedBlockHash())
 		// } else {
 		// 	var parentNumber *big.Int
 		// 	if lastPayloadData == nil {
-		// 		if meta.GetBatchID().Uint64() == i.rpc.MinimalRollupClients.ForkHeights.Pacaya {
+		// 		if meta.GetBatchID().Uint64() == i.rpc.PacayaClients.ForkHeights.Pacaya {
 		// 			parentNumber = new(big.Int).SetUint64(meta.GetBatchID().Uint64() - 1)
 		// 		} else {
 		// 			lastBatch, err := i.rpc.GetBatchByID(ctx, new(big.Int).SetUint64(meta.GetBatchID().Uint64()-1))
@@ -123,6 +116,9 @@ func (i *BlocksInserterPacaya) InsertBlocks(
 		// 		parentNumber = new(big.Int).SetUint64(lastPayloadData.Number)
 		// 	}
 		//
+		// 	parent, err = i.rpc.L2ParentByCurrentBlockID(ctx, new(big.Int).Add(parentNumber, common.Big1))
+		// }
+
 		// TODO: Good enough for now -  we eventually need to get parent some other way
 		parent, err = i.rpc.L2ParentByCurrentBlockID(ctx, new(big.Int).Add(big.NewInt(0), common.Big1))
 		// }
