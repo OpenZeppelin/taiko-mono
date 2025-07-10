@@ -19,4 +19,8 @@
 
 ## Changes on this branch
 
-- So far, I have just updated this markdown file.
+### L1 Development Environment
+- I copied the _L1 Node_ section of the `runme.md` file from PR 3
+- I placed it in the main directory (not _taiko-client_) because it is not specifically related to the client.
+- Following the documentation, I ran `brew install kurtosis-tech/tap/kurtosis-cli`
+  - `kurtosis version` returns `CLI Version:   1.10.2`
