@@ -1,0 +1,7 @@
+participants:
+  - count: 2
+additional_services:
+  - blockscout
+  - dora
+  - prometheus
+  - grafana
