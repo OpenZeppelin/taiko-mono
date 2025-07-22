@@ -19,6 +19,12 @@
 
 ## Changes on this branch
 
+### Linux dev container
+- I was having issues with `kurtosis` on my mac so I decided to try this in a linux dev container.
+- This means I created a `.devcontainer/devcontainer.json` file (copied from Seppi) and opened the project in the container.
+   - this should not impact anything about the code under development, but it means that any local commands I mention are running in the container environment.
+
+
 ### L1 Development Environment
 - I copied (from PR 3)
    - the _L1 Node_ section of the `runme.md` file
