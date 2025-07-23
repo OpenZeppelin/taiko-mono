@@ -31,3 +31,5 @@
    - the _L1 Node_ section of the `runme.md` file
    - the `network_params.yaml` file
 - I placed them in the main directory (not _taiko-client_) because they're not specifically related to the client.
+- I put the kurtosis install instructions in the `Dockerfile`. 
+   - `kurtosis version` returns `CLI Version:   1.10.2`
