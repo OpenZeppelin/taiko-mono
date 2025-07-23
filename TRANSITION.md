@@ -21,8 +21,9 @@
 
 ### Linux dev container
 - I was having issues with `kurtosis` on my mac so I decided to try this in a linux dev container.
-- This means I created a `.devcontainer/devcontainer.json` file (copied from Seppi) and opened the project in the container.
-   - this should not impact anything about the code under development, but it means that any local commands I mention are running in the container environment.
+- Seppi's devcontainer (that he provided us in his workshop) was not suitable because it has a non-root user that cannot install new utilities.
+- I decided to follow [this explanation](https://code.visualstudio.com/docs/devcontainers/create-dev-container) to create a fresh one, and to install all the relevant dependencies in there.
+- Hopefully this also implies that other people can recreate my setup using the same Dockerfile.
 
 
 ### L1 Development Environment
@@ -30,5 +31,3 @@
    - the _L1 Node_ section of the `runme.md` file
    - the `network_params.yaml` file
 - I placed them in the main directory (not _taiko-client_) because they're not specifically related to the client.
-- Following the documentation, I ran `brew install kurtosis-tech/tap/kurtosis-cli`
-  - `kurtosis version` returns `CLI Version:   1.10.2`

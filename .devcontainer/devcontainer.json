@@ -1,48 +1,6 @@
 {
-    "name": "Example Devcontainer with Features",
-    "image": "ghcr.io/artifex1/audit-image-base:main",
-    // Features to add to the dev container. More info: https://containers.dev/features.
-    "features": {
-        // the web3 basics feature from this repository
-        "ghcr.io/artifex1/audit-image-features/web3-basics:latest": {}
-        // add any other features here that are required
-    },
-    // some security hardening
-    "runArgs": [
-        "--cap-drop=ALL",
-        "--security-opt=no-new-privileges",
-        "--security-opt=apparmor:docker-default"
-    ],
-    // Configure tool-specific properties.
-    "customizations": {
-        // Configure properties specific to VS Code.
-        "vscode": {
-            "settings": {
-                // Killswitch for automated tasks
-                "task.autoDetect": "off",
-                "task.problemMatchers.autoDetect": "off",
-                // Trust no one by default
-                "security.workspace.trust.enabled": false,
-                // Killswitch for telemetry
-                "telemetry.telemetryLevel": "off",
-                // Use zsh by default. Using bash might be more safe and stable.
-                "terminal.integrated.defaultProfile.linux": "zsh",
-                "terminal.integrated.profiles.linux": {
-                    "zsh": {
-                        "path": "/usr/bin/zsh"
-                    }
-                }
-                // add any other vscode settings here
-                // 1. open vscode and the control panel (cmd+shift+p)
-                // 2. search for "Preferences: Open Settings (JSON)"
-                // 3. copy the settings you want to add here
-            },
-            "extensions": [
-                // Here goes the list of extensions you want to have available
-                // in the devcontainer. You can get the list of extensions from
-                // the host machine with: code --list-extensions
-                // copy the list here, each extension wrapped in double quotes
-            ]
-        }
+    "build": {
+        // Path is relative to the devcontainer.json file.
+        "dockerfile": "Dockerfile"
     }
 }
