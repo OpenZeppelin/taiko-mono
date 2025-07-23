@@ -33,3 +33,4 @@
 - I placed them in the main directory (not _taiko-client_) because they're not specifically related to the client.
 - I put the kurtosis install instructions in the `Dockerfile`. 
    - `kurtosis version` returns `CLI Version:   1.10.2`
+- The `scripts/run-kurtosis.sh` script can be used to create a kurtosis enclave.
