@@ -34,6 +34,7 @@
 - I put the kurtosis install instructions in the `Dockerfile`. 
    - `kurtosis version` returns `CLI Version:   1.10.2`
 - The `scripts/run-kurtosis.sh` script can be used to create a kurtosis enclave.
+- I ran `cast wallet new` to produce a deployer account with a known private key, and prefunded this account in `network_params.yaml`
 
 #### Local output
 After running the script I get the error
