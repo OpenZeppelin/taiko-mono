@@ -3,5 +3,14 @@
         // Path is relative to the devcontainer.json file.
         "dockerfile": "Dockerfile"
     },
-    "runArgs": ["--privileged"]
+    "runArgs": [
+        "--privileged"
+    ],
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "JuanBlanco.solidity"
+            ]
+        }
+    }
 }
