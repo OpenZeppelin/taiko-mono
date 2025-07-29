@@ -23,3 +23,8 @@ RUN usermod -aG docker vscode
 RUN echo "deb [trusted=yes] https://apt.fury.io/kurtosis-tech/ /" | sudo tee /etc/apt/sources.list.d/kurtosis.list
 RUN apt update
 RUN apt install kurtosis-cli
+
+# Install Foundry
+ENV FOUNDRY_DIR=/usr/local
+RUN curl -L https://foundry.paradigm.xyz | bash
+RUN foundryup
