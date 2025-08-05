@@ -1,0 +1,10 @@
+participants:
+  - count: 2
+additional_services:
+  - blockscout
+  - dora
+  - prometheus
+  - grafana
+network_params:
+  # private key for deployer account 0xe96ca641ff5238b8c8c8b475c467b2456ffe64f61144275d64fe93957f532b8a
+  prefunded_accounts: '{"0x82aB0a16b9ae55B761b6F581d7585697E27aAc89": {"balance": "10ETH"}}'
